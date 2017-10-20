@@ -30,7 +30,7 @@ namespace org.apache.zookeeper
         private readonly Watcher.Event.EventType eventType;
         private readonly string path;
 
-        protected WatchedEvent(Watcher.Event.EventType eventType, Watcher.Event.KeeperState keeperState, string path) {
+        internal WatchedEvent(Watcher.Event.EventType eventType, Watcher.Event.KeeperState keeperState, string path) {
             this.keeperState = keeperState;
             this.eventType = eventType;
             this.path = path;
@@ -40,7 +40,7 @@ namespace org.apache.zookeeper
      * Convert a WatcherEvent sent over the wire into a full-fledged WatcherEvent
      */
 
-        protected WatchedEvent(WatcherEvent eventMessage) {
+        internal WatchedEvent(WatcherEvent eventMessage) {
             keeperState = EnumUtil<Watcher.Event.KeeperState>.DefinedCast(eventMessage.getState());
             eventType = EnumUtil<Watcher.Event.EventType>.DefinedCast(eventMessage.get_Type());
             path = eventMessage.getPath();
