@@ -239,6 +239,8 @@ namespace org.apache.zookeeper.test
             AssertState(dynamicHostProvider, currentIndex: 0, lastIP: resolvedEndPoint1, resolvingInBackground: false);
             Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 999);
         }
+
+        [Fact]
         public async Task TestAfterFirstDnsSuccess()
         {
             var fakeDnsResolver = new FakeDnsResolver();
@@ -309,6 +311,19 @@ namespace org.apache.zookeeper.test
             resolvedEndPoints.Add(resolved1);
 
             sw.Restart();
+            //make sure we still have the last known ip available
+            next = await dynamicHostProvider.next(100);
+            Xunit.Assert.Equal(next, resolved2);
+            //we should start another background dns resolving which should return 'resolve1,resolve2'
+            AssertState(dynamicHostProvider, currentIndex: 0, lastIP: resolved2, resolvingInBackground: true);
+            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 99);
+
+            await Task.Delay(300);
+
+            //background resolving should have ended by now
+            AssertState(dynamicHostProvider, currentIndex: 0, lastIP: resolved2, resolvingInBackground: false);
+            
+            sw.Restart();
             //we expect to get 'resolve1' without the timeout since 'resolve2' was returned after a timeout
             next = await dynamicHostProvider.next(1000);
             Xunit.Assert.Equal(next, resolved1);
@@ -317,10 +332,10 @@ namespace org.apache.zookeeper.test
 
             sw.Restart();
             //we expect to get 'resolve2' with the timeout since it's the LastIP
-            next = await dynamicHostProvider.next(100);
+            next = await dynamicHostProvider.next(400);
             Xunit.Assert.Equal(next, resolved2);
             AssertState(dynamicHostProvider, currentIndex: 1, lastIP: resolved2, resolvingInBackground: false);
-            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 99);
+            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 399);
 
             sw.Restart();
             //we expect to get 'resolve1' without the timeout since 'resolve2' was returned after a timeout
