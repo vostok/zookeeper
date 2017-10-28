@@ -16,7 +16,7 @@
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
     <PackageId>ZooKeeperNetEx.Recipes</PackageId>
     <PackageTags>ZooKeeper;Recipes;.NET;Lock;Leader Election;Queue</PackageTags>
-    <PackageReleaseNotes>* Built with Visual Studio 2017
+    <PackageReleaseNotes>* Tested with .NET Core 2.0
 
 This project is actively maintained at: https://github.com/shayhatsor/zookeeper 
 Please feel free to open an issue or ask a question there.</PackageReleaseNotes>
@@ -27,6 +27,12 @@ Please feel free to open an issue or ask a question there.</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/shayhatsor/zookeeper</RepositoryUrl>
     <DelaySign>False</DelaySign>
 	<IncludeSymbols>True</IncludeSymbols>
+	<Version>3.4.9.10</Version>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard1.3|AnyCPU'">
+    <WarningLevel>4</WarningLevel>
+    <WarningsAsErrors />
   </PropertyGroup>
 
   <ItemGroup>
