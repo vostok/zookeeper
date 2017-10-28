@@ -66,8 +66,8 @@ namespace org.apache.zookeeper {
 
         public void Dispose()
         {
-            deleteNode(m_currentRoot).Wait();
             Task.WaitAll(allClients.Select(c => c.closeAsync()).ToArray());
+            deleteNode(m_currentRoot).Wait();
         }
 
         private static Task deleteNode(string path)

@@ -109,7 +109,7 @@ namespace org.apache.zookeeper.test
 		{
 			// look for the clients to finish their create operations
 			LOG.warn("Starting check for completed hammers");
-			Assert.assertTrue(await Task.WhenAll(tasks).WithTimeout(30000));
+			Assert.assertTrue(await Task.WhenAll(tasks).WithTimeout(40000));
             
 			ZooKeeper zk = await createClient();
 	        for (int i = 0; i < tasks.Length; i++)
