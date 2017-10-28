@@ -86,12 +86,20 @@ public class FileTxnSnapLog {
                         + this.dataDir);
             }
         }
+        if (!this.dataDir.canWrite()) {
+            throw new IOException("Cannot write to data directory " + this.dataDir);
+        }
+
         if (!this.snapDir.exists()) {
             if (!this.snapDir.mkdirs()) {
                 throw new IOException("Unable to create snap directory "
                         + this.snapDir);
             }
         }
+        if (!this.snapDir.canWrite()) {
+            throw new IOException("Cannot write to snap directory " + this.snapDir);
+        }
+
         txnLog = new FileTxnLog(this.dataDir);
         snapLog = new FileSnap(this.snapDir);
     }
@@ -294,9 +302,11 @@ public class FileTxnSnapLog {
     }
 
     /**
-     * get the snapshot logs that are greater than
-     * the given zxid 
-     * @param zxid the zxid that contains logs greater than 
+     * get the snapshot logs which may contain transactions newer than the given zxid.
+     * This includes logs with starting zxid greater than given zxid, as well as the
+     * newest transaction log with starting zxid less than given zxid.  The latter log
+     * file may contain transactions beyond given zxid.
+     * @param zxid the zxid that contains logs greater than
      * zxid
      * @return
      */

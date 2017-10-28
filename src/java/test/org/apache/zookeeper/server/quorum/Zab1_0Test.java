@@ -19,7 +19,11 @@
 package org.apache.zookeeper.server.quorum;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -367,7 +371,9 @@ public class Zab1_0Test {
                 Thread.sleep(20);
             }
             
-            LearnerHandler lh = new LearnerHandler(leaderSocket, leader);
+            LearnerHandler lh = new LearnerHandler(leaderSocket,
+                    new BufferedInputStream(leaderSocket.getInputStream()),
+                    leader);
             lh.start();
             leaderSocket.setSoTimeout(4000);
 
@@ -435,8 +441,10 @@ public class Zab1_0Test {
             while(leader.cnxAcceptor == null || !leader.cnxAcceptor.isAlive()) {
                 Thread.sleep(20);
             }
-            
-            LearnerHandler lh = new LearnerHandler(leaderSocket, leader);
+
+            LearnerHandler lh = new LearnerHandler(leaderSocket,
+                    new BufferedInputStream(leaderSocket.getInputStream()),
+                    leader);
             lh.start();
             leaderSocket.setSoTimeout(4000);
 
@@ -458,7 +466,6 @@ public class Zab1_0Test {
         }
     }
     
-    
     public void testFollowerConversation(FollowerConversation conversation) throws Exception {
         File tmpDir = File.createTempFile("test", "dir", testData);
         tmpDir.delete();
@@ -473,7 +480,9 @@ public class Zab1_0Test {
             
             ServerSocket ss = new ServerSocket();
             ss.bind(null);
-            follower.setLeaderSocketAddress((InetSocketAddress)ss.getLocalSocketAddress());
+            QuorumServer leaderQS = new QuorumServer(1,
+                    (InetSocketAddress) ss.getLocalSocketAddress());
+            follower.setLeaderQuorumServer(leaderQS);
             final Follower followerForThread = follower;
             
             followerThread = new Thread() {
@@ -526,7 +535,9 @@ public class Zab1_0Test {
 
             ServerSocket ss = new ServerSocket();
             ss.bind(null);
-            observer.setLeaderSocketAddress((InetSocketAddress)ss.getLocalSocketAddress());
+            QuorumServer leaderQS = new QuorumServer(1,
+                    (InetSocketAddress) ss.getLocalSocketAddress());
+            observer.setLeaderQuorumServer(leaderQS);
             final Observer observerForThread = observer;
 
             observerThread = new Thread() {
@@ -637,6 +648,8 @@ public class Zab1_0Test {
                 tmpDir.mkdir();
                 File logDir = f.fzk.getTxnLogFactory().getDataDir().getParentFile();
                 File snapDir = f.fzk.getTxnLogFactory().getSnapDir().getParentFile();
+                //Spy on ZK so we can check if a snapshot happened or not.
+                f.zk = spy(f.zk);
                 try {
                     Assert.assertEquals(0, f.self.getAcceptedEpoch());
                     Assert.assertEquals(0, f.self.getCurrentEpoch());
@@ -679,6 +692,10 @@ public class Zab1_0Test {
                     oa.writeRecord(qp, null);
                     zkDb.serializeSnapshot(oa);
                     oa.writeString("BenWasHere", null);
+                    Thread.sleep(10); //Give it some time to process the snap
+                    //No Snapshot taken yet, the SNAP was applied in memory
+                    verify(f.zk, never()).takeSnapshot();
+
                     qp.setType(Leader.NEWLEADER);
                     qp.setZxid(ZxidUtils.makeZxid(1, 0));
                     oa.writeRecord(qp, null);
@@ -689,7 +706,8 @@ public class Zab1_0Test {
                     Assert.assertEquals(ZxidUtils.makeZxid(1, 0), qp.getZxid());
                     Assert.assertEquals(1, f.self.getAcceptedEpoch());
                     Assert.assertEquals(1, f.self.getCurrentEpoch());
-                    
+                    //Make sure that we did take the snapshot now
+                    verify(f.zk).takeSnapshot();
                     Assert.assertEquals(firstZxid, f.fzk.getLastProcessedZxid());
                     
                     // Make sure the data was recorded in the filesystem ok
@@ -765,6 +783,8 @@ public class Zab1_0Test {
                 tmpDir.mkdir();
                 File logDir = f.fzk.getTxnLogFactory().getDataDir().getParentFile();
                 File snapDir = f.fzk.getTxnLogFactory().getSnapDir().getParentFile();
+                //Spy on ZK so we can check if a snapshot happened or not.
+                f.zk = spy(f.zk);
                 try {
                     Assert.assertEquals(0, f.self.getAcceptedEpoch());
                     Assert.assertEquals(0, f.self.getCurrentEpoch());
@@ -831,13 +851,28 @@ public class Zab1_0Test {
                     Assert.assertEquals(1, f.self.getAcceptedEpoch());
                     Assert.assertEquals(1, f.self.getCurrentEpoch());
                     
+                    //Wait for the transactions to be written out. The thread that writes them out
+                    // does not send anything back when it is done.
+                    long start = System.currentTimeMillis();
+                    while (createSessionZxid != f.fzk.getLastProcessedZxid() && (System.currentTimeMillis() - start) < 50) {
+                        Thread.sleep(1);
+                    }
+                    
                     Assert.assertEquals(createSessionZxid, f.fzk.getLastProcessedZxid());
                     
                     // Make sure the data was recorded in the filesystem ok
                     ZKDatabase zkDb2 = new ZKDatabase(new FileTxnSnapLog(logDir, snapDir));
+                    start = System.currentTimeMillis();
                     zkDb2.loadDataBase();
+                    while (zkDb2.getSessionWithTimeOuts().isEmpty() && (System.currentTimeMillis() - start) < 50) {
+                        Thread.sleep(1);
+                        zkDb2.loadDataBase();
+                    }
                     LOG.info("zkdb2 sessions:" + zkDb2.getSessions());
+                    LOG.info("zkdb2 with timeouts:" + zkDb2.getSessionWithTimeOuts());
                     Assert.assertNotNull(zkDb2.getSessionWithTimeOuts().get(4L));
+                    //Snapshot was never taken during very simple sync
+                    verify(f.zk, never()).takeSnapshot();
                 } finally {
                     recursiveDelete(tmpDir);
                 }
@@ -1338,14 +1373,14 @@ public class Zab1_0Test {
             super(self, zk);
         }
 
-        InetSocketAddress leaderAddr;
-        public void setLeaderSocketAddress(InetSocketAddress addr) {
-            leaderAddr = addr;
+        QuorumServer leaderQuorumServer;
+        public void setLeaderQuorumServer(QuorumServer quorumServer) {
+            leaderQuorumServer = quorumServer;
         }
         
         @Override
-        protected InetSocketAddress findLeader() {
-            return leaderAddr;
+        protected QuorumServer findLeader() {
+            return leaderQuorumServer;
         }
     }
     private ConversableFollower createFollower(File tmpDir, QuorumPeer peer)
@@ -1364,14 +1399,14 @@ public class Zab1_0Test {
             super(self, zk);
         }
         
-        InetSocketAddress leaderAddr;
-        public void setLeaderSocketAddress(InetSocketAddress addr) {
-            leaderAddr = addr;
+        QuorumServer leaderQuorumServer;
+        public void setLeaderQuorumServer(QuorumServer quorumServer) {
+            leaderQuorumServer = quorumServer;
         }
         
         @Override
-        protected InetSocketAddress findLeader() {
-            return leaderAddr;
+        protected QuorumServer findLeader() {
+            return leaderQuorumServer;
         }
     }
         
@@ -1389,7 +1424,7 @@ public class Zab1_0Test {
     
     private QuorumPeer createQuorumPeer(File tmpDir) throws IOException,
             FileNotFoundException {
-        QuorumPeer peer = new QuorumPeer();
+        QuorumPeer peer = QuorumPeer.testingQuorumPeer();
         peer.syncLimit = SYNC_LIMIT;
         peer.initLimit = 2;
         peer.tickTime = 2000;
@@ -1435,7 +1470,7 @@ public class Zab1_0Test {
             logFactory.append(req);
             logFactory.commit();
             ZKDatabase zkDb = new ZKDatabase(logFactory);
-            QuorumPeer peer = new QuorumPeer();
+            QuorumPeer peer = QuorumPeer.testingQuorumPeer();
             peer.setZKDatabase(zkDb);
             peer.setTxnFactory(logFactory);
             peer.getLastLoggedZxid();

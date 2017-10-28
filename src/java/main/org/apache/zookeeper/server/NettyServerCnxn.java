@@ -382,7 +382,7 @@ public class NettyServerCnxn extends ServerCnxn {
             
         @Override
         public void commandRun() {
-            if (zkServer == null) {
+            if (!isZKServerRunning()) {
                 pw.println(ZK_NOT_SERVING);
             } else {
                 zkServer.dumpConf(pw);
@@ -397,7 +397,7 @@ public class NettyServerCnxn extends ServerCnxn {
         
         @Override
         public void commandRun() {
-            if (zkServer == null) {
+            if (!isZKServerRunning()) {
                 pw.println(ZK_NOT_SERVING);
             }
             else { 
@@ -414,7 +414,7 @@ public class NettyServerCnxn extends ServerCnxn {
         
         @Override
         public void commandRun() {
-            if (zkServer == null) {
+            if (!isZKServerRunning()) {
                 pw.println(ZK_NOT_SERVING);
             } else {
                 synchronized(factory.cnxns){
@@ -434,7 +434,7 @@ public class NettyServerCnxn extends ServerCnxn {
         
         @Override
         public void commandRun() {
-            if (zkServer == null) {
+            if (!isZKServerRunning()) {
                 pw.println(ZK_NOT_SERVING);
             }
             else {
@@ -455,7 +455,7 @@ public class NettyServerCnxn extends ServerCnxn {
         
         @Override
         public void commandRun() {
-            if (zkServer == null) {
+            if (!isZKServerRunning()) {
                 pw.println(ZK_NOT_SERVING);
             }
             else {   
@@ -495,7 +495,7 @@ public class NettyServerCnxn extends ServerCnxn {
         
         @Override
         public void commandRun() {
-            if (zkServer == null) {
+            if (!isZKServerRunning()) {
                 pw.println(ZK_NOT_SERVING);
             } else {
                 // clone should be faster than iteration
@@ -522,7 +522,7 @@ public class NettyServerCnxn extends ServerCnxn {
 
         @Override
         public void commandRun() {
-            if (zkServer == null) {
+            if (!isZKServerRunning()) {
                 pw.println(ZK_NOT_SERVING);
             } else {
                 DataTree dt = zkServer.getZKDatabase().getDataTree();
@@ -546,7 +546,7 @@ public class NettyServerCnxn extends ServerCnxn {
 
         @Override
         public void commandRun() {
-            if(zkServer == null) {
+            if(!isZKServerRunning()) {
                 pw.println(ZK_NOT_SERVING);
                 return;
             }
@@ -608,7 +608,7 @@ public class NettyServerCnxn extends ServerCnxn {
 
         @Override
         public void commandRun() {
-            if (zkServer == null) {
+            if (!isZKServerRunning()) {
                 pw.print("null");
             } else if (zkServer instanceof ReadOnlyZooKeeperServer) {
                 pw.print("ro");
@@ -618,23 +618,47 @@ public class NettyServerCnxn extends ServerCnxn {
         }
     }
 
+    private class NopCommand extends CommandThread {
+        private String msg;
+
+        public NopCommand(PrintWriter pw, String msg) {
+            super(pw);
+            this.msg = msg;
+        }
+
+        @Override
+        public void commandRun() {
+            pw.println(msg);
+        }
+    }
+
     /** Return if four letter word found and responded to, otw false **/
     private boolean checkFourLetterWord(final Channel channel,
             ChannelBuffer message, final int len) throws IOException
     {
         // We take advantage of the limited size of the length to look
         // for cmds. They are all 4-bytes which fits inside of an int
-        String cmd = cmd2String.get(len);
-        if (cmd == null) {
+        if (!ServerCnxn.isKnown(len)) {
             return false;
         }
+
         channel.setInterestOps(0).awaitUninterruptibly();
-        LOG.info("Processing " + cmd + " command from "
-                + channel.getRemoteAddress());
         packetReceived();
 
         final PrintWriter pwriter = new PrintWriter(
                 new BufferedWriter(new SendBufferWriter()));
+
+        String cmd = ServerCnxn.getCommandString(len);
+        // ZOOKEEPER-2693: don't execute 4lw if it's not enabled.
+        if (!ServerCnxn.isEnabled(cmd)) {
+            LOG.debug("Command {} is not executed because it is not in the whitelist.", cmd);
+            NopCommand nopCmd = new NopCommand(pwriter, cmd + " is not executed because it is not in the whitelist.");
+            nopCmd.start();
+            return true;
+        }
+
+        LOG.info("Processing " + cmd + " command from " + channel.getRemoteAddress());
+
         if (len == ruokCmd) {
             RuokCommand ruok = new RuokCommand(pwriter);
             ruok.start();
@@ -735,7 +759,7 @@ public class NettyServerCnxn extends ServerCnxn {
                         bb.flip();
 
                         ZooKeeperServer zks = this.zkServer;
-                        if (zks == null) {
+                        if (zks == null || !zks.isRunning()) {
                             throw new IOException("ZK down");
                         }
                         if (initialized) {
@@ -846,10 +870,16 @@ public class NettyServerCnxn extends ServerCnxn {
 
     @Override
     protected ServerStats serverStats() {
-        if (zkServer == null) {
+        if (!isZKServerRunning()) {
             return null;
         }
         return zkServer.serverStats();
     }
 
+    /**
+     * @return true if the server is running, false otherwise.
+     */
+    boolean isZKServerRunning() {
+        return zkServer != null && zkServer.isRunning();
+    }
 }
