@@ -27,7 +27,7 @@ Please feel free to open an issue or ask a question there.</PackageReleaseNotes>
     <RepositoryUrl>https://github.com/shayhatsor/zookeeper</RepositoryUrl>
     <DelaySign>False</DelaySign>
 	<IncludeSymbols>True</IncludeSymbols>
-	<Version>3.4.9.10</Version>
+	<Version>3.4.10.1</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard1.3|AnyCPU'">
