@@ -82,12 +82,7 @@ public class QuorumCnxManager {
     // stale notifications to peers
     static final int SEND_CAPACITY = 1;
 
-    static final int PACKETMAXSIZE = 1024 * 512; 
-    /*
-     * Maximum number of attempts to connect to a peer
-     */
-
-    static final int MAX_CONNECTION_ATTEMPTS = 2;
+    static final int PACKETMAXSIZE = 1024 * 512;
 
     /*
      * Max buffer size to be read from the network.
@@ -112,6 +107,7 @@ public class QuorumCnxManager {
     final long mySid;
     final int socketTimeout;
     final Map<Long, QuorumPeer.QuorumServer> view;
+    final boolean tcpKeepAlive = Boolean.getBoolean("zookeeper.tcpKeepAlive");
     final boolean listenOnAllIPs;
     private ThreadPoolExecutor connectionExecutor;
     private final Set<Long> inprogressConnections = Collections
@@ -175,14 +171,28 @@ public class QuorumCnxManager {
                             boolean listenOnAllIPs,
                             int quorumCnxnThreadsSize,
                             boolean quorumSaslAuthEnabled) {
+        this(mySid, view, authServer, authLearner, socketTimeout, listenOnAllIPs,
+                quorumCnxnThreadsSize, quorumSaslAuthEnabled, new ConcurrentHashMap<Long, SendWorker>());
+    }
+
+    // visible for testing
+    public QuorumCnxManager(final long mySid,
+                            Map<Long,QuorumPeer.QuorumServer> view,
+                            QuorumAuthServer authServer,
+                            QuorumAuthLearner authLearner,
+                            int socketTimeout,
+                            boolean listenOnAllIPs,
+                            int quorumCnxnThreadsSize,
+                            boolean quorumSaslAuthEnabled,
+                            ConcurrentHashMap<Long, SendWorker> senderWorkerMap) {
+        this.senderWorkerMap = senderWorkerMap;
+
         this.recvQueue = new ArrayBlockingQueue<Message>(RECV_CAPACITY);
         this.queueSendMap = new ConcurrentHashMap<Long, ArrayBlockingQueue<ByteBuffer>>();
-        this.senderWorkerMap = new ConcurrentHashMap<Long, SendWorker>();
         this.lastMessageSent = new ConcurrentHashMap<Long, ByteBuffer>();
-        
         String cnxToValue = System.getProperty("zookeeper.cnxTimeout");
         if(cnxToValue != null){
-            this.cnxTO = new Integer(cnxToValue); 
+            this.cnxTO = Integer.parseInt(cnxToValue);
         }
 
         this.mySid = mySid;
@@ -349,10 +359,7 @@ public class QuorumCnxManager {
                 vsw.finish();
             
             senderWorkerMap.put(sid, sw);
-            if (!queueSendMap.containsKey(sid)) {
-                queueSendMap.put(sid, new ArrayBlockingQueue<ByteBuffer>(
-                        SEND_CAPACITY));
-            }
+            queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
             
             sw.start();
             rw.start();
@@ -490,11 +497,7 @@ public class QuorumCnxManager {
                 vsw.finish();
             
             senderWorkerMap.put(sid, sw);
-            
-            if (!queueSendMap.containsKey(sid)) {
-                queueSendMap.put(sid, new ArrayBlockingQueue<ByteBuffer>(
-                        SEND_CAPACITY));
-            }
+            queueSendMap.putIfAbsent(sid, new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY));
             
             sw.start();
             rw.start();
@@ -521,19 +524,12 @@ public class QuorumCnxManager {
              /*
               * Start a new connection if doesn't have one already.
               */
-             if (!queueSendMap.containsKey(sid)) {
-                 ArrayBlockingQueue<ByteBuffer> bq = new ArrayBlockingQueue<ByteBuffer>(
-                         SEND_CAPACITY);
-                 queueSendMap.put(sid, bq);
-                 addToSendQueue(bq, b);
-
+             ArrayBlockingQueue<ByteBuffer> bq = new ArrayBlockingQueue<ByteBuffer>(SEND_CAPACITY);
+             ArrayBlockingQueue<ByteBuffer> bqExisting = queueSendMap.putIfAbsent(sid, bq);
+             if (bqExisting != null) {
+                 addToSendQueue(bqExisting, b);
              } else {
-                 ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid);
-                 if(bq != null){
-                     addToSendQueue(bq, b);
-                 } else {
-                     LOG.error("No queue for server " + sid);
-                 }
+                 addToSendQueue(bq, b);
              }
              connectOne(sid);
                 
@@ -666,6 +662,7 @@ public class QuorumCnxManager {
      */
     private void setSockOpts(Socket sock) throws SocketException {
         sock.setTcpNoDelay(true);
+        sock.setKeepAlive(tcpKeepAlive);
         sock.setSoTimeout(socketTimeout);
     }
 

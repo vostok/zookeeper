@@ -222,6 +222,15 @@ public class NIOServerCnxn extends ServerCnxn {
         return sock.isOpen();
     }
 
+    @Override
+    public InetAddress getSocketAddress() {
+        if (sock == null) {
+            return null;
+        }
+
+        return sock.socket().getInetAddress();
+    }
+
     /**
      * Handles read/write IO on connection.
      */
@@ -354,9 +363,8 @@ public class NIOServerCnxn extends ServerCnxn {
                 }
             }
         } catch (CancelledKeyException e) {
-            LOG.warn("Exception causing close of session 0x"
-                    + Long.toHexString(sessionId)
-                    + " due to " + e);
+            LOG.warn("CancelledKeyException causing close of session 0x"
+                     + Long.toHexString(sessionId));
             if (LOG.isDebugEnabled()) {
                 LOG.debug("CancelledKeyException stack trace", e);
             }
@@ -365,14 +373,15 @@ public class NIOServerCnxn extends ServerCnxn {
             // expecting close to log session closure
             close();
         } catch (EndOfStreamException e) {
-            LOG.warn("caught end of stream exception",e); // tell user why
-
+            LOG.warn(e.getMessage());
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("EndOfStreamException stack trace", e);
+            }
             // expecting close to log session closure
             close();
         } catch (IOException e) {
             LOG.warn("Exception causing close of session 0x"
-                    + Long.toHexString(sessionId)
-                    + " due to " + e);
+                     + Long.toHexString(sessionId) + ": " + e.getMessage());
             if (LOG.isDebugEnabled()) {
                 LOG.debug("IOException stack trace", e);
             }
@@ -453,7 +462,7 @@ public class NIOServerCnxn extends ServerCnxn {
             }
         }
     }
-    
+
     /**
      * This class wraps the sendBuffer method of NIOServerCnxn. It is
      * responsible for chunking up the response to a client. Rather
@@ -1000,34 +1009,21 @@ public class NIOServerCnxn extends ServerCnxn {
      */
     @Override
     public void close() {
-        synchronized(factory.cnxns){
-            // if this is not in cnxns then it's already closed
-            if (!factory.cnxns.remove(this)) {
-                return;
-            }
+        factory.removeCnxn(this);
 
-            synchronized (factory.ipMap) {
-                Set<NIOServerCnxn> s =
-                    factory.ipMap.get(sock.socket().getInetAddress());
-                s.remove(this);
-            }
+        if (zkServer != null) {
+            zkServer.removeCnxn(this);
+        }
 
-            factory.unregisterConnection(this);
+        closeSock();
 
-            if (zkServer != null) {
-                zkServer.removeCnxn(this);
-            }
-    
-            closeSock();
-    
-            if (sk != null) {
-                try {
-                    // need to cancel this selection key from the selector
-                    sk.cancel();
-                } catch (Exception e) {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug("ignoring exception during selectionkey cancel", e);
-                    }
+        if (sk != null) {
+            try {
+                // need to cancel this selection key from the selector
+                sk.cancel();
+            } catch (Exception e) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("ignoring exception during selectionkey cancel", e);
                 }
             }
         }
@@ -1168,6 +1164,7 @@ public class NIOServerCnxn extends ServerCnxn {
     @Override
     public void setSessionId(long sessionId) {
         this.sessionId = sessionId;
+        this.factory.addSession(sessionId, this);
     }
 
     @Override

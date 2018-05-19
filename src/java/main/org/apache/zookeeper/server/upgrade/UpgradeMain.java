@@ -21,6 +21,7 @@ package org.apache.zookeeper.server.upgrade;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.server.DataTree;
@@ -36,6 +37,7 @@ import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
  * it creates a backup in the dataDir/.bkup and snapShotDir/.bkup which 
  * can be retrieved back to the snapShotDir and dataDir 
  */
+@InterfaceAudience.Public
 public class UpgradeMain {
     File snapShotDir;
     File dataDir;
@@ -114,15 +116,17 @@ public class UpgradeMain {
      */
     void copyFiles(File srcDir, File dstDir, String filter) throws IOException {
         File[] list = srcDir.listFiles();
-        for (File file: list) {
-            String name = file.getName();
-            if (name.startsWith(filter)) {
-                // we need to copy this file
-                File dest = new File(dstDir, name);
-                LOG.info("Renaming " + file + " to " + dest);
-                if (!file.renameTo(dest)) {
-                    throw new IOException("Unable to rename " 
-                            + file + " to " +  dest);
+        if (list != null) {
+            for (File file: list) {
+                String name = file.getName();
+                if (name.startsWith(filter)) {
+                    // we need to copy this file
+                    File dest = new File(dstDir, name);
+                    LOG.info("Renaming " + file + " to " + dest);
+                    if (!file.renameTo(dest)) {
+                        throw new IOException("Unable to rename "
+                                + file + " to " +  dest);
+                    }
                 }
             }
         }

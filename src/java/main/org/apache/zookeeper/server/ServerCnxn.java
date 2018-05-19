@@ -21,6 +21,7 @@ package org.apache.zookeeper.server;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -100,6 +101,11 @@ public abstract class ServerCnxn implements Stats, Watcher {
     abstract void disableRecv();
 
     abstract void setSessionTimeout(int sessionTimeout);
+
+    /**
+     * Wrapper method to return the socket address
+     */
+    public abstract InetAddress getSocketAddress();
 
     protected ZooKeeperSaslServer zooKeeperSaslServer = null;
 
@@ -234,7 +240,7 @@ public abstract class ServerCnxn implements Stats, Watcher {
     protected final static int isroCmd = ByteBuffer.wrap("isro".getBytes())
             .getInt();
 
-    protected final static Map<Integer, String> cmd2String = new HashMap<Integer, String>();
+    final static Map<Integer, String> cmd2String = new HashMap<Integer, String>();
 
     private static final String ZOOKEEPER_4LW_COMMANDS_WHITELIST = "zookeeper.4lw.commands.whitelist";
 
@@ -315,8 +321,8 @@ public abstract class ServerCnxn implements Stats, Watcher {
         // zkServer.sh depends on "srvr".
         whiteListedCommands.add("srvr");
         whiteListInitialized = true;
-        LOG.info("The list of known four letter word commands is : {}", Arrays.asList(cmd2String));
-        LOG.info("The list of enabled four letter word commands is : {}", Arrays.asList(whiteListedCommands));
+        LOG.info("The list of known four letter word commands is : {}", Collections.singletonList(cmd2String));
+        LOG.info("The list of enabled four letter word commands is : {}", Collections.singletonList(whiteListedCommands));
         return whiteListedCommands.contains(command);
     }
 

@@ -21,7 +21,6 @@ package org.apache.zookeeper.server.persistence;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.Serializable;
@@ -51,7 +50,6 @@ public class Util {
     private static final String SNAP_DIR="snapDir";
     private static final String LOG_DIR="logDir";
     private static final String DB_FORMAT_CONV="dbFormatConversion";
-    private static final ByteBuffer fill = ByteBuffer.allocateDirect(1);
     
     public static String makeURIString(String dataDir, String dataLogDir, 
             String convPolicy){
@@ -85,7 +83,7 @@ public class Util {
      * @return file name
      */
     public static String makeLogName(long zxid) {
-        return "log." + Long.toHexString(zxid);
+        return FileTxnLog.LOG_FILE_PREFIX + "." + Long.toHexString(zxid);
     }
 
     /**
@@ -95,7 +93,7 @@ public class Util {
      * @return file name
      */
     public static String makeSnapshotName(long zxid) {
-        return "snapshot." + Long.toHexString(zxid);
+        return FileSnap.SNAPSHOT_FILE_PREFIX + "." + Long.toHexString(zxid);
     }
     
     /**
@@ -159,7 +157,7 @@ public class Util {
      * @throws IOException
      */
     public static boolean isValidSnapshot(File f) throws IOException {
-        if (f==null || Util.getZxidFromName(f.getName(), "snapshot") == -1)
+        if (f==null || Util.getZxidFromName(f.getName(), FileSnap.SNAPSHOT_FILE_PREFIX) == -1)
             return false;
 
         // Check for a valid snapshot
@@ -196,29 +194,6 @@ public class Util {
         }
 
         return true;
-    }
-
-    /**
-     * Grows the file to the specified number of bytes. This only happenes if 
-     * the current file position is sufficiently close (less than 4K) to end of 
-     * file. 
-     * 
-     * @param f output stream to pad
-     * @param currentSize application keeps track of the cuurent file size
-     * @param preAllocSize how many bytes to pad
-     * @return the new file size. It can be the same as currentSize if no
-     * padding was done.
-     * @throws IOException
-     */
-    public static long padLogFile(FileOutputStream f,long currentSize,
-            long preAllocSize) throws IOException{
-        long position = f.getChannel().position();
-        if (position + 4096 >= currentSize) {
-            currentSize = currentSize + preAllocSize;
-            fill.position(0);
-            f.getChannel().write(fill, currentSize-fill.remaining());
-        }
-        return currentSize;
     }
 
     /**
@@ -321,6 +296,26 @@ public class Util {
         List<File> filelist = Arrays.asList(files);
         Collections.sort(filelist, new DataDirFileComparator(prefix, ascending));
         return filelist;
+    }
+
+    /**
+     * Returns true if fileName is a log file name.
+     *
+     * @param fileName
+     * @return
+     */
+    public static boolean isLogFileName(String fileName) {
+        return fileName.startsWith(FileTxnLog.LOG_FILE_PREFIX + ".");
+    }
+
+    /**
+     * Returns true if fileName is a snapshot file name.
+     *
+     * @param fileName
+     * @return
+     */
+    public static boolean isSnapshotFileName(String fileName) {
+        return fileName.startsWith(FileSnap.SNAPSHOT_FILE_PREFIX + ".");
     }
     
 }

@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.yetus.audience.InterfaceAudience;
 import org.apache.zookeeper.server.persistence.FileTxnSnapLog;
 import org.apache.zookeeper.server.persistence.Util;
 import org.slf4j.Logger;
@@ -41,6 +42,7 @@ import org.slf4j.LoggerFactory;
  * files and snapdir files keeping the last "-n" snapshot files
  * and the corresponding logs.
  */
+@InterfaceAudience.Public
 public class PurgeTxnLog {
     private static final Logger LOG = LoggerFactory.getLogger(PurgeTxnLog.class);
 
@@ -133,11 +135,18 @@ public class PurgeTxnLog {
             }
         }
         // add all non-excluded log files
-        List<File> files = new ArrayList<File>(Arrays.asList(txnLog
-                .getDataDir().listFiles(new MyFileFilter(PREFIX_LOG))));
+        List<File> files = new ArrayList<File>();
+        File[] fileArray = txnLog.getDataDir().listFiles(new MyFileFilter(PREFIX_LOG));
+        if (fileArray != null) {
+            files.addAll(Arrays.asList(fileArray));
+        }
+
         // add all non-excluded snapshot files to the deletion list
-        files.addAll(Arrays.asList(txnLog.getSnapDir().listFiles(
-                new MyFileFilter(PREFIX_SNAPSHOT))));
+        fileArray = txnLog.getSnapDir().listFiles(new MyFileFilter(PREFIX_SNAPSHOT));
+        if (fileArray != null) {
+            files.addAll(Arrays.asList(fileArray));
+        }
+
         // remove the old files
         for(File f: files)
         {
@@ -202,7 +211,7 @@ public class PurgeTxnLog {
      * error and usage and then exits
      *
      * @param number
-     * @return
+     * @return count
      */
     private static int validateAndGetCount(String number) {
         int result = 0;

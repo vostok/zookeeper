@@ -173,16 +173,8 @@ public class SaslQuorumAuthLearner implements QuorumAuthLearner {
         BufferedOutputStream bufferedOutput = new BufferedOutputStream(dout);
         BinaryOutputArchive boa = BinaryOutputArchive
                 .getArchive(bufferedOutput);
-        if (response != null && response.length < 0) {
-            throw new IOException("Response length < 0");
-        } else if (response == null) {
-            authPacket = QuorumAuth.createPacket(
-                    QuorumAuth.Status.IN_PROGRESS, response);
-        } else {
-            authPacket = QuorumAuth.createPacket(
-                    QuorumAuth.Status.IN_PROGRESS, response);
-        }
-
+        authPacket = QuorumAuth.createPacket(
+                QuorumAuth.Status.IN_PROGRESS, response);
         boa.writeRecord(authPacket, QuorumAuth.QUORUM_AUTH_MESSAGE_TAG);
         bufferedOutput.flush();
     }

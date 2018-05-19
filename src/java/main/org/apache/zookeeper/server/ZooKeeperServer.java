@@ -325,10 +325,6 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         hzxid.set(zxid);
     }
 
-    long getTime() {
-        return System.currentTimeMillis();
-    }
-
     private void close(long sessionId) {
         submitRequest(null, sessionId, OpCode.closeSession, 0, null, null);
     }
@@ -469,7 +465,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
         if (zkShutdownHandler != null) {
             zkShutdownHandler.handle(state);
         } else {
-            LOG.error("ZKShutdownHandler is not registered, so ZooKeeper server "
+            LOG.debug("ZKShutdownHandler is not registered, so ZooKeeper server "
                     + "won't take any action on ERROR or SHUTDOWN server state changes");
         }
     }
@@ -516,14 +512,24 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
             firstProcessor.shutdown();
         }
 
-        if (fullyShutDown && zkDb != null) {
-            zkDb.clear();
+        if (zkDb != null) {
+            if (fullyShutDown) {
+                zkDb.clear();
+            } else {
+                // else there is no need to clear the database
+                //  * When a new quorum is established we can still apply the diff
+                //    on top of the same zkDb data
+                //  * If we fetch a new snapshot from leader, the zkDb will be
+                //    cleared anyway before loading the snapshot
+                try {
+                    //This will fast forward the database to the latest recorded transactions
+                    zkDb.fastForwardDataBase();
+                } catch (IOException e) {
+                    LOG.error("Error updating DB", e);
+                    zkDb.clear();
+                }
+            }
         }
-        // else there is no need to clear the database
-        //  * When a new quorum is established we can still apply the diff
-        //    on top of the same zkDb data
-        //  * If we fetch a new snapshot from leader, the zkDb will be
-        //    cleared anyway before loading the snapshot
 
         unregisterJMX();
     }
@@ -591,7 +597,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                 DataTree.copyStatPersisted(this.stat, stat);
             }
             return new ChangeRecord(zxid, path, stat, childCount,
-                    acl == null ? new ArrayList<ACL>() : new ArrayList(acl));
+                    acl == null ? new ArrayList<ACL>() : new ArrayList<ACL>(acl));
         }
     }
 
@@ -1008,6 +1014,7 @@ public class ZooKeeperServer implements SessionExpirer, ServerStats.Provider {
                 Record rsp = processSasl(incomingBuffer,cnxn);
                 ReplyHeader rh = new ReplyHeader(h.getXid(), 0, KeeperException.Code.OK.intValue());
                 cnxn.sendResponse(rh,rsp, "response"); // not sure about 3rd arg..what is it?
+                return;
             }
             else {
                 Request si = new Request(cnxn, cnxn.getSessionId(), h.getXid(),

@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -91,11 +92,14 @@ public class FileTxnLog implements TxnLog {
     private static final Logger LOG;
 
     static long preAllocSize =  65536 * 1024;
+    private static final ByteBuffer fill = ByteBuffer.allocateDirect(1);
 
     public final static int TXNLOG_MAGIC =
         ByteBuffer.wrap("ZKLG".getBytes()).getInt();
 
     public final static int VERSION = 2;
+
+    public static final String LOG_FILE_PREFIX = "log";
 
     /** Maximum time we allow for elapsed fsync before WARNing */
     private final static long fsyncWarningThresholdMS;
@@ -192,53 +196,89 @@ public class FileTxnLog implements TxnLog {
     public synchronized boolean append(TxnHeader hdr, Record txn)
         throws IOException
     {
-        if (hdr != null) {
-            if (hdr.getZxid() <= lastZxidSeen) {
-                LOG.warn("Current zxid " + hdr.getZxid()
-                        + " is <= " + lastZxidSeen + " for "
-                        + hdr.getType());
-            }
-            if (logStream==null) {
-               if(LOG.isInfoEnabled()){
-                    LOG.info("Creating new log file: log." +  
-                            Long.toHexString(hdr.getZxid()));
-               }
-               
-               logFileWrite = new File(logDir, ("log." + 
-                       Long.toHexString(hdr.getZxid())));
-               fos = new FileOutputStream(logFileWrite);
-               logStream=new BufferedOutputStream(fos);
-               oa = BinaryOutputArchive.getArchive(logStream);
-               FileHeader fhdr = new FileHeader(TXNLOG_MAGIC,VERSION, dbId);
-               fhdr.serialize(oa, "fileheader");
-               // Make sure that the magic number is written before padding.
-               logStream.flush();
-               currentSize = fos.getChannel().position();
-               streamsToFlush.add(fos);
-            }
-            padFile(fos);
-            byte[] buf = Util.marshallTxnEntry(hdr, txn);
-            if (buf == null || buf.length == 0) {
-                throw new IOException("Faulty serialization for header " +
-                        "and txn");
-            }
-            Checksum crc = makeChecksumAlgorithm();
-            crc.update(buf, 0, buf.length);
-            oa.writeLong(crc.getValue(), "txnEntryCRC");
-            Util.writeTxnBytes(oa, buf);
-            
-            return true;
+        if (hdr == null) {
+            return false;
         }
-        return false;
+
+        if (hdr.getZxid() <= lastZxidSeen) {
+            LOG.warn("Current zxid " + hdr.getZxid()
+                    + " is <= " + lastZxidSeen + " for "
+                    + hdr.getType());
+        } else {
+            lastZxidSeen = hdr.getZxid();
+        }
+
+        if (logStream==null) {
+           if(LOG.isInfoEnabled()){
+                LOG.info("Creating new log file: " + Util.makeLogName(hdr.getZxid()));
+           }
+
+            logFileWrite = new File(logDir, Util.makeLogName(hdr.getZxid()));
+            fos = new FileOutputStream(logFileWrite);
+            logStream=new BufferedOutputStream(fos);
+            oa = BinaryOutputArchive.getArchive(logStream);
+            FileHeader fhdr = new FileHeader(TXNLOG_MAGIC,VERSION, dbId);
+            fhdr.serialize(oa, "fileheader");
+            // Make sure that the magic number is written before padding.
+            logStream.flush();
+            currentSize = fos.getChannel().position();
+            streamsToFlush.add(fos);
+        }
+        currentSize = padFile(fos.getChannel());
+        byte[] buf = Util.marshallTxnEntry(hdr, txn);
+        if (buf == null || buf.length == 0) {
+            throw new IOException("Faulty serialization for header " +
+                    "and txn");
+        }
+        Checksum crc = makeChecksumAlgorithm();
+        crc.update(buf, 0, buf.length);
+        oa.writeLong(crc.getValue(), "txnEntryCRC");
+        Util.writeTxnBytes(oa, buf);
+
+        return true;
     }
 
     /**
-     * pad the current file to increase its size
-     * @param out the outputstream to be padded
+     * pad the current file to increase its size to the next multiple of preAllocSize greater than the current size and position
+     * @param fileChannel the fileChannel of the file to be padded
      * @throws IOException
      */
-    private void padFile(FileOutputStream out) throws IOException {
-        currentSize = Util.padLogFile(out, currentSize, preAllocSize);
+    private long padFile(FileChannel fileChannel) throws IOException {
+        long newFileSize = calculateFileSizeWithPadding(fileChannel.position(), currentSize, preAllocSize);
+        if (currentSize != newFileSize) {
+            fileChannel.write((ByteBuffer) fill.position(0), newFileSize - fill.remaining());
+            currentSize = newFileSize;
+        }
+        return currentSize;
+    }
+
+    /**
+     * Calculates a new file size with padding. We only return a new size if
+     * the current file position is sufficiently close (less than 4K) to end of
+     * file and preAllocSize is > 0.
+     *
+     * @param position the point in the file we have written to
+     * @param fileSize application keeps track of the current file size
+     * @param preAllocSize how many bytes to pad
+     * @return the new file size. It can be the same as fileSize if no
+     * padding was done.
+     * @throws IOException
+     */
+    // VisibleForTesting
+    public static long calculateFileSizeWithPadding(long position, long fileSize, long preAllocSize) {
+        // If preAllocSize is positive and we are within 4KB of the known end of the file calculate a new file size
+        if (preAllocSize > 0 && position + 4096 >= fileSize) {
+            // If we have written more than we have previously preallocated we need to make sure the new
+            // file size is larger than what we already have
+            if (position > fileSize){
+                fileSize = position + preAllocSize;
+                fileSize -= fileSize % preAllocSize;
+            } else {
+                fileSize += preAllocSize;
+            }
+        }
+
+        return fileSize;
     }
 
     /**
@@ -250,12 +290,12 @@ public class FileTxnLog implements TxnLog {
      * @return
      */
     public static File[] getLogFiles(File[] logDirList,long snapshotZxid) {
-        List<File> files = Util.sortDataDir(logDirList, "log", true);
+        List<File> files = Util.sortDataDir(logDirList, LOG_FILE_PREFIX, true);
         long logZxid = 0;
         // Find the log file that starts before or at the same time as the
         // zxid of the snapshot
         for (File f : files) {
-            long fzxid = Util.getZxidFromName(f.getName(), "log");
+            long fzxid = Util.getZxidFromName(f.getName(), LOG_FILE_PREFIX);
             if (fzxid > snapshotZxid) {
                 continue;
             }
@@ -267,7 +307,7 @@ public class FileTxnLog implements TxnLog {
         }
         List<File> v=new ArrayList<File>(5);
         for (File f : files) {
-            long fzxid = Util.getZxidFromName(f.getName(), "log");
+            long fzxid = Util.getZxidFromName(f.getName(), LOG_FILE_PREFIX);
             if (fzxid < logZxid) {
                 continue;
             }
@@ -284,7 +324,7 @@ public class FileTxnLog implements TxnLog {
     public long getLastLoggedZxid() {
         File[] files = getLogFiles(logDir.listFiles(), 0);
         long maxLog=files.length>0?
-                Util.getZxidFromName(files[files.length-1].getName(),"log"):-1;
+                Util.getZxidFromName(files[files.length-1].getName(),LOG_FILE_PREFIX):-1;
 
         // if a log file is more recent we must scan it to find
         // the highest zxid
@@ -538,13 +578,13 @@ public class FileTxnLog implements TxnLog {
          */
         void init() throws IOException {
             storedFiles = new ArrayList<File>();
-            List<File> files = Util.sortDataDir(FileTxnLog.getLogFiles(logDir.listFiles(), 0), "log", false);
+            List<File> files = Util.sortDataDir(FileTxnLog.getLogFiles(logDir.listFiles(), 0), LOG_FILE_PREFIX, false);
             for (File f: files) {
-                if (Util.getZxidFromName(f.getName(), "log") >= zxid) {
+                if (Util.getZxidFromName(f.getName(), LOG_FILE_PREFIX) >= zxid) {
                     storedFiles.add(f);
                 }
                 // add the last logfile that is less than the zxid
-                else if (Util.getZxidFromName(f.getName(), "log") < zxid) {
+                else if (Util.getZxidFromName(f.getName(), LOG_FILE_PREFIX) < zxid) {
                     storedFiles.add(f);
                     break;
                 }
@@ -637,8 +677,6 @@ public class FileTxnLog implements TxnLog {
                 crc.update(bytes, 0, bytes.length);
                 if (crcValue != crc.getValue())
                     throw new IOException(CRC_ERROR);
-                if (bytes == null || bytes.length == 0)
-                    return false;
                 hdr = new TxnHeader();
                 record = SerializeUtils.deserializeTxn(bytes, hdr);
             } catch (EOFException e) {
