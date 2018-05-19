@@ -1,0 +1,32 @@
+﻿<Project>
+  <Import Project="version.props" />
+
+  <PropertyGroup>
+    <Product>Apache Zookeeper .NET Client</Product>
+    <Copyright>© Shay Hazor</Copyright>
+    <Authors>Shay Hazor</Authors>
+
+    <RepositoryUrl>https://github.com/shayhatsor/zookeeper</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryRoot>$(MSBuildThisFileDirectory)</RepositoryRoot>
+    <CommitHash>not empty</CommitHash>
+
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)ZooKeeperNetEx.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <PublicSign Condition="'$(OS)' != 'Windows_NT'">true</PublicSign>
+    <DelaySign>False</DelaySign>
+
+    <langVersion>latest</langVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DebugType>full</DebugType>
+
+    <PackageReleaseNotes>
+      This project is actively maintained at: https://github.com/shayhatsor/zookeeper 
+Please feel free to open an issue or ask a question there.
+    </PackageReleaseNotes>
+    <PackageIconUrl>https://raw.githubusercontent.com/shayhatsor/zookeeper/trunk/zookeeper.bmp</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/shayhatsor/zookeeper</PackageProjectUrl>
+    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+  </PropertyGroup>
+
+</Project>

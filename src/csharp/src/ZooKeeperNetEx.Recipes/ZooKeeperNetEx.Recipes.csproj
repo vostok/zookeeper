@@ -1,47 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>.NET async Distributed recipes for ZooKeeper: Queue, Lock and Leader Election.</Description>
-    <Copyright>Shay Hazor - Copyright 2017</Copyright>
+    <Description>.NET async Distributed Recipes For ZooKeeper: Queue, Lock and Leader Election.</Description>
     <AssemblyTitle>Apache ZooKeeper .NET async Recipes</AssemblyTitle>
-    <VersionPrefix>3.4.9.4</VersionPrefix>
-    <Authors>Shay Hazor</Authors>
-    <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DebugType>portable</DebugType>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyName>ZooKeeperNetEx.Recipes</AssemblyName>
-    <AssemblyOriginatorKeyFile>../../ZooKeeperNetEx.snk</AssemblyOriginatorKeyFile>
-    <SignAssembly>true</SignAssembly>
-    <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
     <PackageId>ZooKeeperNetEx.Recipes</PackageId>
     <PackageTags>ZooKeeper;Recipes;.NET;Lock;Leader Election;Queue</PackageTags>
-    <PackageReleaseNotes>* Tested with .NET Core 2.0
-
-This project is actively maintained at: https://github.com/shayhatsor/zookeeper 
-Please feel free to open an issue or ask a question there.</PackageReleaseNotes>
-    <PackageIconUrl>https://raw.githubusercontent.com/shayhatsor/zookeeper/trunk/zookeeper.bmp</PackageIconUrl>
-    <PackageProjectUrl>https://github.com/shayhatsor/zookeeper</PackageProjectUrl>
-    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/shayhatsor/zookeeper</RepositoryUrl>
-    <DelaySign>False</DelaySign>
-	<IncludeSymbols>True</IncludeSymbols>
-	<Version>3.4.10.1</Version>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard1.3|AnyCPU'">
-    <WarningLevel>4</WarningLevel>
-    <WarningsAsErrors />
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ZooKeeperNetEx\ZooKeeperNetEx.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
 </Project>

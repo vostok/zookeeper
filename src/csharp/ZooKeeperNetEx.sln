@@ -7,15 +7,21 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
+		Directory.Build.props = Directory.Build.props
 		NuGet.config = NuGet.config
 		NuGetPackageVerifier.json = NuGetPackageVerifier.json
-		pack.cmd = pack.cmd
-		ZooKeeperNetEx.snk = ZooKeeperNetEx.snk
+		version.props = version.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{C28103FF-C2A2-44D5-8A9F-55255139270A}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Build.props = src\Directory.Build.props
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{4B6719A8-92AF-43D8-B888-B2D51EDD5EFC}"
+	ProjectSection(SolutionItems) = preProject
+		test\Directory.Build.props = test\Directory.Build.props
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZooKeeperNetEx", "src\ZooKeeperNetEx\ZooKeeperNetEx.csproj", "{FF7547E8-BD4F-4D3A-AC29-C9DD74E48CB3}"
 EndProject
@@ -56,5 +62,8 @@ Global
 		{4CE3A450-A8AA-48DC-8A05-7D9B3A169B6A} = {C28103FF-C2A2-44D5-8A9F-55255139270A}
 		{D4F18D58-52B1-435D-A012-10F2123458C4} = {4B6719A8-92AF-43D8-B888-B2D51EDD5EFC}
 		{E16D61E7-487C-4933-98D6-1C9A4053A767} = {4B6719A8-92AF-43D8-B888-B2D51EDD5EFC}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {347287AB-D5D7-4457-9267-D7C5405316DC}
 	EndGlobalSection
 EndGlobal
