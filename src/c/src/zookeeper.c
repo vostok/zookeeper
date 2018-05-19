@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#ifndef DLL_EXPORT
+#if !defined(DLL_EXPORT) && !defined(USE_STATIC_LIB)
 #  define USE_STATIC_LIB
 #endif
 
@@ -24,6 +24,7 @@
 #define USE_IPV6
 #endif
 
+#include "config.h"
 #include <zookeeper.h>
 #include <zookeeper.jute.h>
 #include <proto.h>
@@ -41,16 +42,33 @@
 #include <stdarg.h>
 #include <limits.h>
 
-#ifndef WIN32
+#ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
+#endif
+
+#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+#endif
+
+#ifdef HAVE_POLL
 #include <poll.h>
+#endif
+
+#ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#endif
+
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
+#endif
+
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
-#include <unistd.h>
-#include "config.h"
+#endif
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h> // needed for _POSIX_MONOTONIC_CLOCK
 #endif
 
 #ifdef HAVE_SYS_UTSNAME_H
@@ -59,6 +77,15 @@
 
 #ifdef HAVE_GETPWUID_R
 #include <pwd.h>
+#endif
+
+#ifdef WIN32
+#define random rand /* replace POSIX random with Windows rand */
+#include <process.h> /* for getpid */
+#include <direct.h> /* for getcwd */
+#define EAI_ADDRFAMILY WSAEINVAL /* is this still needed? */
+#define EHOSTDOWN EPIPE
+#define ESTALE ENODEV
 #endif
 
 #define IF_DEBUG(x) if(logLevel==ZOO_LOG_LEVEL_DEBUG) {x;}
@@ -1611,7 +1638,16 @@ int zookeeper_interest(zhandle_t *zh, int *fd, int *interest,
 #endif
                 rc = connect(zh->fd, (struct sockaddr*) &zh->addrs[zh->connect_index], sizeof(struct sockaddr_in));
 #ifdef WIN32
-                get_errno();
+                errno = GetLastError();
+
+#ifndef EWOULDBLOCK
+#define EWOULDBLOCK WSAEWOULDBLOCK
+#endif
+
+#ifndef EINPROGRESS
+#define EINPROGRESS WSAEINPROGRESS
+#endif
+
 #if _MSC_VER >= 1600
                 switch (errno) {
                 case WSAEWOULDBLOCK:
@@ -2072,6 +2108,7 @@ static void deserialize_response(int type, int xid, int failed, int rc, completi
             cptr->c.string_result(rc, 0, cptr->data);
         } else {
             struct CreateResponse res;
+            memset(&res, 0, sizeof(res));
             deserialize_CreateResponse(ia, "reply", &res);
             cptr->c.string_result(rc, res.path, cptr->data);
             deallocate_CreateResponse(&res);
