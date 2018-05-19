@@ -42,12 +42,16 @@ import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
+import org.apache.zookeeper.common.Time;
 import org.apache.zookeeper.test.ClientBase.CountdownWatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.LoggerFactory;
 
 public class ReadOnlyModeTest extends ZKTestCase {
+    private static final org.slf4j.Logger LOG = LoggerFactory
+            .getLogger(ReadOnlyModeTest.class);
     private static int CONNECTION_TIMEOUT = QuorumBase.CONNECTION_TIMEOUT;
     private QuorumUtil qu = new QuorumUtil(1);
 

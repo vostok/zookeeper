@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.yetus.audience.InterfaceAudience;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.AsyncCallback.DataCallback;
@@ -40,7 +41,6 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 import org.apache.zookeeper.data.Stat;
-import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,9 +48,10 @@ import java.util.regex.Pattern;
  * The command line client to ZooKeeper.
  *
  */
+@InterfaceAudience.Public
 public class ZooKeeperMain {
     private static final Logger LOG = LoggerFactory.getLogger(ZooKeeperMain.class);
-    protected static final Map<String,String> commandMap = new HashMap<String,String>( );
+    static final Map<String,String> commandMap = new HashMap<String,String>( );
 
     protected MyCommandOptions cl = new MyCommandOptions();
     protected HashMap<Integer,String> history = new HashMap<Integer,String>( );
@@ -90,8 +91,8 @@ public class ZooKeeperMain {
 
     static void usage() {
         System.err.println("ZooKeeper -server host:port cmd args");
-        for (String cmd : commandMap.keySet()) {
-            System.err.println("\t"+cmd+ " " + commandMap.get(cmd));
+        for (Map.Entry<String, String> entry : commandMap.entrySet()) {
+            System.err.println("\t" + entry.getKey() + " " + entry.getValue());
         }
     }
 
@@ -310,8 +311,8 @@ public class ZooKeeperMain {
             boolean jlinemissing = false;
             // only use jline if it's in the classpath
             try {
-                Class consoleC = Class.forName("jline.ConsoleReader");
-                Class completorC =
+                Class<?> consoleC = Class.forName("jline.ConsoleReader");
+                Class<?> completorC =
                     Class.forName("org.apache.zookeeper.JLineZNodeCompletor");
 
                 System.out.println("JLine support is enabled");

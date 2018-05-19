@@ -29,6 +29,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 
+import org.apache.yetus.audience.InterfaceAudience;
+
+@InterfaceAudience.Public
 public class FourLetterWordMain {
     //in milliseconds, socket should connect/read within this period otherwise SocketTimeoutException
     private static final int DEFAULT_SOCKET_TIMEOUT = 5000;

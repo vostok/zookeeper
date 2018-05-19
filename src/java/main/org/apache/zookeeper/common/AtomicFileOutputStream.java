@@ -63,6 +63,17 @@ public class AtomicFileOutputStream extends FilterOutputStream {
                 .getAbsoluteFile();
     }
 
+    /**
+     * The default write method in FilterOutputStream does not call the write
+     * method of its underlying input stream with the same arguments. Instead
+     * it writes the data byte by byte, override it here to make it more
+     * efficient.
+     */
+    @Override
+    public void write(byte b[], int off, int len) throws IOException {
+        out.write(b, off, len);
+    }
+
     @Override
     public void close() throws IOException {
         boolean triedToClose = false, success = false;

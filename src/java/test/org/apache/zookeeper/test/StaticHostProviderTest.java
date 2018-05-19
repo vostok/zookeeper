@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 import org.apache.zookeeper.ZKTestCase;
 import org.apache.zookeeper.client.HostProvider;
 import org.apache.zookeeper.client.StaticHostProvider;
+import org.apache.zookeeper.common.Time;
 import org.junit.Test;
 
 import org.slf4j.Logger;
@@ -42,7 +43,7 @@ public class StaticHostProviderTest extends ZKTestCase {
     private static final Logger LOG = LoggerFactory.getLogger(StaticHostProviderTest.class);
     
     @Test
-    public void testNextGoesRound() throws UnknownHostException {
+    public void testNextGoesRound() {
         HostProvider hostProvider = getHostProvider((byte) 2);
         InetSocketAddress first = hostProvider.next(0);
         assertTrue(first instanceof InetSocketAddress);
@@ -51,30 +52,30 @@ public class StaticHostProviderTest extends ZKTestCase {
     }
 
     @Test
-    public void testNextGoesRoundAndSleeps() throws UnknownHostException {
+    public void testNextGoesRoundAndSleeps() {
         byte size = 2;
         HostProvider hostProvider = getHostProvider(size);
         while (size > 0) {
             hostProvider.next(0);
             --size;
         }
-        long start = System.currentTimeMillis();
+        long start = Time.currentElapsedTime();
         hostProvider.next(1000);
-        long stop = System.currentTimeMillis();
+        long stop = Time.currentElapsedTime();
         assertTrue(900 <= stop - start);
     }
 
     @Test
-    public void testNextDoesNotSleepForZero() throws UnknownHostException {
+    public void testNextDoesNotSleepForZero() {
         byte size = 2;
         HostProvider hostProvider = getHostProvider(size);
         while (size > 0) {
             hostProvider.next(0);
             --size;
         }
-        long start = System.currentTimeMillis();
+        long start = Time.currentElapsedTime();
         hostProvider.next(0);
-        long stop = System.currentTimeMillis();
+        long stop = Time.currentElapsedTime();
         assertTrue(5 > stop - start);
     }
 
@@ -86,7 +87,7 @@ public class StaticHostProviderTest extends ZKTestCase {
     }
 
     @Test
-    public void testOnConnectDoesNotReset() throws UnknownHostException {
+    public void testOnConnectDoesNotReset() {
         HostProvider hostProvider = getHostProvider((byte) 2);
         InetSocketAddress first = hostProvider.next(0);
         hostProvider.onConnected();
@@ -124,8 +125,7 @@ public class StaticHostProviderTest extends ZKTestCase {
         return list;
     }
     
-    private StaticHostProvider getHostProvider(byte size)
-            throws UnknownHostException {
+    private StaticHostProvider getHostProvider(byte size) {
         ArrayList<InetSocketAddress> list = new ArrayList<InetSocketAddress>(
                 size);
         while (size > 0) {
