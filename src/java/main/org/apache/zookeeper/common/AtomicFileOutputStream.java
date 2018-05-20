@@ -35,10 +35,10 @@ import org.slf4j.LoggerFactory;
  * A FileOutputStream that has the property that it will only show up at its
  * destination once it has been entirely written and flushed to disk. While
  * being written, it will use a .tmp suffix.
- * 
+ *
  * When the output stream is closed, it is flushed, fsynced, and will be moved
  * into place, overwriting any file that already exists at that location.
- * 
+ *
  * <b>NOTE</b>: on Windows platforms, it will not atomically replace the target
  * file - instead the target file is deleted before this one is moved into
  * place.

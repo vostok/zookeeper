@@ -134,7 +134,7 @@ public abstract class KeeperException extends Exception {
                 return new SessionMovedException();
             case NOTREADONLY:
                 return new NotReadOnlyException();
-            	
+
             case OK:
             default:
                 throw new IllegalArgumentException("Invalid exception code");
@@ -487,7 +487,7 @@ public abstract class KeeperException extends Exception {
      * If this exception was thrown by a multi-request then the (partial) results
      * and error codes can be retrieved using this getter.
      * @return A copy of the list of results from the operations in the multi-request.
-     * 
+     *
      * @since 3.4.0
      *
      */
@@ -685,7 +685,7 @@ public abstract class KeeperException extends Exception {
             super(Code.SESSIONEXPIRED);
         }
     }
-    
+
     /**
      * @see Code#SESSIONMOVED
      */

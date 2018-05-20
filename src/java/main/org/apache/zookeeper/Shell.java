@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.common.Time;
 
-/** 
+/**
  * A base class for running a Unix command.
  * 
  * <code>Shell</code> can be used to run unix commands like <code>du</code> or
