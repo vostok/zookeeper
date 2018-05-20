@@ -1,19 +1,19 @@
 /*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 using System;
@@ -69,11 +69,11 @@ namespace org.apache.zookeeper {
     /// A client needs an object of a class implementing Watcher interface for
     /// processing the events delivered to the client.
     ///
-    /// When a client drops current connection and re-connects to a server, all the
+    /// When a client drops the current connection and re-connects to a server, all the
     /// existing watches are considered as being triggered but the undelivered events
     /// are lost. To emulate this, the client will generate a special event to tell
     /// the event handler a connection has been dropped. This special event has type
-    /// EventNone and state sKeeperStateDisconnected
+    /// EventType None and KeeperState Disconnected
     /// </remarks>
     public class ZooKeeper {
         private static readonly byte[] NO_PASSWORD = new byte[0];
@@ -130,8 +130,10 @@ namespace org.apache.zookeeper {
                 }
             }
 
-            public HashSet<Watcher> materialize(Watcher.Event.KeeperState state, Watcher.Event.EventType type,
-                string clientPath) {
+            public HashSet<Watcher> materialize(Watcher.Event.KeeperState state, 
+										Watcher.Event.EventType type,
+                						string clientPath) 
+		{
                 HashSet<Watcher> result = new HashSet<Watcher>();
                 switch (type) {
                     case Watcher.Event.EventType.None:
@@ -174,7 +176,7 @@ namespace org.apache.zookeeper {
                         lock (existWatches) {
                             HashSet<Watcher> list = existWatches.remove(clientPath);
                             if (list != null) {
-                                addTo(existWatches.remove(clientPath), result);
+                                addTo(list, result);
                                 LOG.warn("We are triggering an exists watch for delete! Shouldn't happen!");
                             }
                         }
@@ -183,11 +185,12 @@ namespace org.apache.zookeeper {
                         }
                         break;
                     default:
-                        string msg = "Unhandled watch event type " + type + " with state " + state + " on path " +
-                                     clientPath;
+                        string msg = "Unhandled watch event type " + type 
+						    + " with state " + state + " on path " + clientPath;
                         LOG.error(msg);
                         throw new InvalidOperationException(msg);
                 }
+				
                 return result;
             }
         }
@@ -283,7 +286,7 @@ namespace org.apache.zookeeper {
         }
 
         /// <summary>
-        /// 
+        /// ZooKeeper client states
         /// </summary>
         public enum States {
             /// <summary>
@@ -295,7 +298,7 @@ namespace org.apache.zookeeper {
             /// </summary>
             CONNECTED,
             /// <summary>
-            /// Connecting to ZooKeeper Service
+            /// Connecting to ZooKeeper Service in read only state
             /// </summary>
             CONNECTEDREADONLY,
             /// <summary>
@@ -307,7 +310,7 @@ namespace org.apache.zookeeper {
             /// </summary>
             AUTH_FAILED,
             /// <summary>
-            /// No Connected to ZooKeeper Service
+            /// Not Connected to ZooKeeper Service
             /// </summary>
             NOT_CONNECTED
         }
@@ -917,20 +920,20 @@ namespace org.apache.zookeeper {
 
         /// <summary>
         /// Set the ACL for the node of the given path if such a node exists and the
-        /// given version matches the version of the node. Return the stat of the
+        /// given aclVersion matches the acl version of the node. Return the stat of the
         /// node.
         /// </summary>
-        /// <param name="path">node path</param>
-        /// <param name="acl">acl</param>
-        /// <param name="version">version</param>
+        /// <param name="path">the given path for the node</param>
+        /// <param name="acl">the given acl for the node</param>
+        /// <param name="aclVersion">the given acl version of the node</param>
         /// <returns></returns>
-        /// <exception cref="KeeperException.BadVersionException">the given version does not match the node's version</exception>
+        /// <exception cref="KeeperException.BadVersionException">the given aclVersion does not match the node's aclVersion</exception>
         /// <exception cref="KeeperException.NoNodeException">if no node with the given path exists.</exception>
         /// <exception cref="KeeperException.ConnectionLossException">the connection has been lost, you should retry</exception>
         /// <exception cref="KeeperException.SessionExpiredException">the server says the session has expired, you should create a new client</exception>
         /// <exception cref="KeeperException">the server signals an error with a non-zero error code</exception> 
         /// <exception cref="ArgumentException">when <paramref name="path"/> is invalid</exception> 
-        public async Task<Stat> setACLAsync(string path, List<ACL> acl, int version = -1) {
+        public async Task<Stat> setACLAsync(string path, List<ACL> acl, int aclVersion = -1) {
             string clientPath = path;
             PathUtils.validatePath(clientPath);
 
@@ -944,7 +947,7 @@ namespace org.apache.zookeeper {
                 throw new KeeperException.InvalidACLException(clientPath);
             }
             request.setAcl(acl);
-            request.setVersion(version);
+            request.setVersion(aclVersion);
             SetACLResponse response = new SetACLResponse();
             ReplyHeader r = await cnxn.submitRequest(h, request, response, null).ConfigureAwait(false);
             if (r.getErr() != 0) {

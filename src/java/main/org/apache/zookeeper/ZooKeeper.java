@@ -77,11 +77,11 @@ import java.util.*;
  * A client needs an object of a class implementing Watcher interface for
  * processing the events delivered to the client.
  *
- * When a client drops current connection and re-connects to a server, all the
+ * When a client drops the current connection and re-connects to a server, all the
  * existing watches are considered as being triggered but the undelivered events
  * are lost. To emulate this, the client will generate a special event to tell
- * the event handler a connection has been dropped. This special event has type
- * EventNone and state sKeeperStateDisconnected.
+ * the event handler a connection has been dropped. This special event has
+ * EventType None and KeeperState Disconnected.
  *
  */
 @InterfaceAudience.Public
@@ -212,7 +212,7 @@ public class ZooKeeper {
                 synchronized (existWatches) {
                     Set<Watcher> list = existWatches.remove(clientPath);
                     if (list != null) {
-                        addTo(existWatches.remove(clientPath), result);
+                        addTo(list, result);
                         LOG.warn("We are triggering an exists watch for delete! Shouldn't happen!");
                     }
                 }
@@ -1421,25 +1421,25 @@ public class ZooKeeper {
 
     /**
      * Set the ACL for the node of the given path if such a node exists and the
-     * given version matches the version of the node. Return the stat of the
+     * given aclVersion matches the acl version of the node. Return the stat of the
      * node.
      * <p>
      * A KeeperException with error code KeeperException.NoNode will be thrown
      * if no node with the given path exists.
      * <p>
      * A KeeperException with error code KeeperException.BadVersion will be
-     * thrown if the given version does not match the node's version.
+     * thrown if the given aclVersion does not match the node's aclVersion.
      *
-     * @param path
-     * @param acl
-     * @param version
+     * @param path the given path for the node
+     * @param acl the given acl for the node
+     * @param aclVersion the given acl version of the node
      * @return the stat of the node.
      * @throws InterruptedException If the server transaction is interrupted.
      * @throws KeeperException If the server signals an error with a non-zero error code.
      * @throws org.apache.zookeeper.KeeperException.InvalidACLException If the acl is invalide.
      * @throws IllegalArgumentException if an invalid path is specified
      */
-    public Stat setACL(final String path, List<ACL> acl, int version)
+    public Stat setACL(final String path, List<ACL> acl, int aclVersion)
         throws KeeperException, InterruptedException
     {
         final String clientPath = path;
@@ -1455,7 +1455,7 @@ public class ZooKeeper {
             throw new KeeperException.InvalidACLException(clientPath);
         }
         request.setAcl(acl);
-        request.setVersion(version);
+        request.setVersion(aclVersion);
         SetACLResponse response = new SetACLResponse();
         ReplyHeader r = cnxn.submitRequest(h, request, response, null);
         if (r.getErr() != 0) {
@@ -1839,7 +1839,7 @@ public class ZooKeeper {
             clientCnxnSocketName = ClientCnxnSocketNIO.class.getName();
         }
         try {
-            return (ClientCnxnSocket) Class.forName(clientCnxnSocketName)
+            return (ClientCnxnSocket) Class.forName(clientCnxnSocketName).getDeclaredConstructor()
                     .newInstance();
         } catch (Exception e) {
             IOException ioe = new IOException("Couldn't instantiate "
