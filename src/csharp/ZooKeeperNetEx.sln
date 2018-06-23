@@ -21,6 +21,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{4B6719A8-92AF-43D8-B888-B2D51EDD5EFC}"
 	ProjectSection(SolutionItems) = preProject
 		test\Directory.Build.props = test\Directory.Build.props
+		test\xunit.runner.json = test\xunit.runner.json
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZooKeeperNetEx", "src\ZooKeeperNetEx\ZooKeeperNetEx.csproj", "{FF7547E8-BD4F-4D3A-AC29-C9DD74E48CB3}"

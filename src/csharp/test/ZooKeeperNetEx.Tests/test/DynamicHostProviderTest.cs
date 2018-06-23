@@ -198,7 +198,7 @@ namespace org.apache.zookeeper.test
             await Xunit.Assert.ThrowsAsync<SocketException>(() => dynamicHostProvider.next(1000));
             AssertState(dynamicHostProvider, currentIndex: -1, lastIP: null, resolvingInBackground: false);
             //we expect the timeout to be used, since it's not the first dns attempt
-            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 999);
+            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 990);
 
             //adding a resolved address to dns resolution
             var resolvedEndPoint1 = new ResolvedEndPoint(IPAddress.Loopback, 999);
@@ -210,7 +210,7 @@ namespace org.apache.zookeeper.test
             Xunit.Assert.Equal(resolvedEndPoint1, next);
             AssertState(dynamicHostProvider, currentIndex: -1, lastIP: null, resolvingInBackground: false);
             //we expect the timeout to be used, since it's not the first dns attempt
-            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 999);
+            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 990);
 
             sw.Restart();
             //we asked for the next, knowing it would be the same address
@@ -237,7 +237,7 @@ namespace org.apache.zookeeper.test
             next = await dynamicHostProvider.next(1000);
             Xunit.Assert.Equal(next, resolvedEndPoint1);
             AssertState(dynamicHostProvider, currentIndex: 0, lastIP: resolvedEndPoint1, resolvingInBackground: false);
-            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 999);
+            Assert.assertTrue($"is {sw.ElapsedMilliseconds}", sw.ElapsedMilliseconds >= 990);
         }
 
         [Fact]

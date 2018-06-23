@@ -2,8 +2,10 @@
   <Import Project="..\Directory.Build.props" />
 
   <PropertyGroup>
-    <RuntimeFrameworkVersion>2.0.0</RuntimeFrameworkVersion>
-    <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
+    <DeveloperBuildTestTfms>netcoreapp2.1</DeveloperBuildTestTfms>
+    <StandardTestTfms>$(DeveloperBuildTestTfms)</StandardTestTfms>
+
+    <StandardTestTfms Condition=" '$(DeveloperBuild)' != 'true' AND '$(OS)' == 'Windows_NT' ">$(StandardTestTfms);net461</StandardTestTfms>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -16,9 +18,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="$(MicrosoftNETTestSdkPackageVersion)" />
+    <PackageReference Include="xunit.analyzers" Version="$(XunitAnalyzersPackageVersion)" />
     <PackageReference Include="xunit.runner.visualstudio" Version="$(XunitRunnerVisualStudioPackageVersion)" />
     <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJson)" />
     <PackageReference Include="xunit" Version="$(XunitPackageVersion)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)xunit.runner.json" Link="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

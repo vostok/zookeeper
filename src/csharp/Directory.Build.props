@@ -12,7 +12,7 @@
     <RepositoryRoot>$(MSBuildThisFileDirectory)</RepositoryRoot>
     <CommitHash>not empty</CommitHash>
 
-    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)ZooKeeperNetEx.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)build\Key.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PublicSign Condition="'$(OS)' != 'Windows_NT'">true</PublicSign>
     <DelaySign>False</DelaySign>
