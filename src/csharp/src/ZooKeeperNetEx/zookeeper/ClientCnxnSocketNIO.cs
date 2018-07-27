@@ -66,6 +66,7 @@ namespace org.apache.zookeeper
         internal ClientCnxnSocketNIO(ClientCnxn cnxn) : base(cnxn) 
         {
             receiveEventArgs = new SocketAsyncEventArgs();
+            receiveEventArgs.SocketError = SocketError.Success;
             receiveEventArgs.SetBuffer(new byte[0], 0, 0);
             receiveEventArgs.Completed += delegate { ReceiveCompleted(); };
         }
@@ -210,8 +211,7 @@ namespace org.apache.zookeeper
                 await Task.Delay(100).ConfigureAwait(false);
                 try
 				{
-                    if(socket.Connected)
-                        socket.Shutdown(SocketShutdown.Receive);
+                    socket.Shutdown(SocketShutdown.Receive);
 				}
 				catch (Exception e)
 				{
@@ -222,8 +222,7 @@ namespace org.apache.zookeeper
 				}
 				try
 				{
-                    if (socket.Connected)
-                        socket.Shutdown(SocketShutdown.Send);
+                    socket.Shutdown(SocketShutdown.Send);
 				}
 				catch (Exception e)
 				{
@@ -378,6 +377,10 @@ namespace org.apache.zookeeper
 
 	        if (clientCnxn.getState().isConnected())
 			{
+			    if (receiveEventArgs.SocketError != SocketError.Success)
+			    {
+			        throw new SocketException((int) receiveEventArgs.SocketError);
+			    }
                 lock (clientCnxn.outgoingQueue)
 				{
                     if (findSendablePacket() != null)
