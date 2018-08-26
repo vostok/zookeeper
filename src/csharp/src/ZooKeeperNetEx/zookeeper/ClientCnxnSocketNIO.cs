@@ -282,6 +282,7 @@ namespace org.apache.zookeeper
             
             connectEventArgs = new SocketAsyncEventArgs();
             connectEventArgs.Completed += ConnectAsyncCompleted;
+		    receiveEventArgs.SocketError = SocketError.Success;
             try
 			{
 			   registerAndConnect(sock, addr);
@@ -375,12 +376,13 @@ namespace org.apache.zookeeper
                 }
             }
 
+            if (receiveEventArgs.SocketError != SocketError.Success)
+            {
+                throw new SocketException((int) receiveEventArgs.SocketError);
+            }
+
 	        if (clientCnxn.getState().isConnected())
-			{
-			    if (receiveEventArgs.SocketError != SocketError.Success)
-			    {
-			        throw new SocketException((int) receiveEventArgs.SocketError);
-			    }
+			{   
                 lock (clientCnxn.outgoingQueue)
 				{
                     if (findSendablePacket() != null)

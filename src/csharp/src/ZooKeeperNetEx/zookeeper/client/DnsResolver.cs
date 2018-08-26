@@ -19,19 +19,6 @@ namespace org.apache.zookeeper.client
             this.log = log;
         }
 
-        /// <summary>
-        /// The method "Dns.GetHostAddressesAsync" doesn't exist in .NET 4
-        /// But, it isn't really async in .NET 4.5 and up. The internal implementation
-        /// just queues a blocking call on the thread pool. see: http://stackoverflow.com/questions/11480742/dns-begingethost-methods-blocking
-        /// Therefore, the .NET 4 implementation here is equivalent to "Dns.GetHostAddressesAsync".
-        /// In .NET Core the implementation is OS specific, so real async implementations
-        /// might exist.
-        /// </summary>
-        private Task<IPAddress[]> GetHostAddressesAsync(string host)
-        {
-            return Dns.GetHostAddressesAsync(host);
-        }
-
         private static void IgnoreTask(Task task)
         {
             if (task.IsCompleted)
@@ -53,7 +40,7 @@ namespace org.apache.zookeeper.client
             string host = hostAndPort.Host;
             log.debug($"Resolving Host={host}");
             var dnsTimeoutTask = Task.Delay(DNS_TIMEOUT);
-            var dnsResolvingTask = GetHostAddressesAsync(host);
+            var dnsResolvingTask = Dns.GetHostAddressesAsync(host);
             await Task.WhenAny(dnsResolvingTask, dnsTimeoutTask).ConfigureAwait(false);
             if (dnsTimeoutTask.IsCompleted)
             {
