@@ -2,17 +2,19 @@
   <PropertyGroup>
     <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
   </PropertyGroup>
+  <!-- This files is typically managed by automation. Execute 'run.ps1 upgrade deps' to update these variables to the last-known-good versions. -->
   <PropertyGroup Label="Package Versions">
-    <NewtonsoftJson>11.0.2</NewtonsoftJson>    
 	<SystemDiagnosticsTraceSource>4.3.0</SystemDiagnosticsTraceSource>
 	<SystemNetNameResolution>4.3.0</SystemNetNameResolution>
-    <MicrosoftNETTestSdkPackageVersion>15.7.0</MicrosoftNETTestSdkPackageVersion>
+    <MicrosoftNETTestSdkPackageVersion>15.8.0</MicrosoftNETTestSdkPackageVersion>
+    <MicrosoftNETCoreApp20PackageVersion>2.0.9</MicrosoftNETCoreApp20PackageVersion>
+    <MicrosoftNETCoreApp21PackageVersion>2.1.2</MicrosoftNETCoreApp21PackageVersion>
     <NETStandardLibrary20PackageVersion>2.0.3</NETStandardLibrary20PackageVersion>
-    <XunitAnalyzersPackageVersion>0.8.0</XunitAnalyzersPackageVersion>
-    <XunitPackageVersion>2.3.1</XunitPackageVersion>
-    <MicrosoftNETCoreApp20PackageVersion>2.0.0</MicrosoftNETCoreApp20PackageVersion>
-    <MicrosoftNETCoreApp21PackageVersion>2.1.0</MicrosoftNETCoreApp21PackageVersion>
-    <XunitRunnerVisualStudioPackageVersion>2.3.1</XunitRunnerVisualStudioPackageVersion>
+    <NewtonsoftJsonPackageVersion>11.0.2</NewtonsoftJsonPackageVersion>
+    <XunitAnalyzersPackageVersion>0.10.0</XunitAnalyzersPackageVersion>
+    <XunitPackageVersion>2.4.0</XunitPackageVersion>
+    <XunitRunnerVisualStudioPackageVersion>2.4.0</XunitRunnerVisualStudioPackageVersion>
   </PropertyGroup>
   <Import Project="$(DotNetPackageVersionPropsPath)" Condition=" '$(DotNetPackageVersionPropsPath)' != '' " />
+  <PropertyGroup Label="Package Versions: Pinned" />
 </Project>

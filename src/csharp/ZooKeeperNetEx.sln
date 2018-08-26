@@ -32,6 +32,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZooKeeperNetEx.Tests", "tes
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZooKeeperNetEx.Recipes.Tests", "test\ZooKeeperNetEx.Recipes.Tests\ZooKeeperNetEx.Recipes.Tests.csproj", "{E16D61E7-487C-4933-98D6-1C9A4053A767}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{D267E8FA-C3D0-42E7-9A0C-EE1DFEEA6381}"
+	ProjectSection(SolutionItems) = preProject
+		build\dependencies.props = build\dependencies.props
+		build\sources.props = build\sources.props
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +69,7 @@ Global
 		{4CE3A450-A8AA-48DC-8A05-7D9B3A169B6A} = {C28103FF-C2A2-44D5-8A9F-55255139270A}
 		{D4F18D58-52B1-435D-A012-10F2123458C4} = {4B6719A8-92AF-43D8-B888-B2D51EDD5EFC}
 		{E16D61E7-487C-4933-98D6-1C9A4053A767} = {4B6719A8-92AF-43D8-B888-B2D51EDD5EFC}
+		{D267E8FA-C3D0-42E7-9A0C-EE1DFEEA6381} = {3124BC6C-39C6-473D-B3E5-E04C85D922F4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {347287AB-D5D7-4457-9267-D7C5405316DC}
