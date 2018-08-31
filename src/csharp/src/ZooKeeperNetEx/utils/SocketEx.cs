@@ -23,7 +23,7 @@ namespace org.apache.utils
 {
     internal static class SocketEx
     {
-        public static void read(this Socket socket, ByteBuffer byteBuffer)
+        public static int read(this Socket socket, ByteBuffer byteBuffer)
         {
             int size = byteBuffer.remaining();
             byte[] data = new byte[size];
@@ -40,6 +40,7 @@ namespace org.apache.utils
                 index += read;
             }
             byteBuffer.Stream.Write(data, 0, index);
+            return index;
         }
 
         public static void write(this Socket socket, ByteBuffer byteBuffer)
