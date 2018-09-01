@@ -35,20 +35,20 @@ namespace org.apache.zookeeper
 		private Socket socket;
 
 
-        private readonly ThreadSafeInt pendingIncomingDataNotifierState = new ThreadSafeInt(NOTRUNNING);
-        //pendingIncomingDataNotifierState states
-	    private const int RUNNING = 1;
+        private readonly ThreadSafeInt receiveState = new ThreadSafeInt(RECEIVE_NOT_RUNNING);
+        //receiveState states
+	    private const int RECEIVE_RUNNING = 1;
 
-	    private const int NOTRUNNING = 0;
+	    private const int RECEIVE_NOT_RUNNING = 0;
 
 
-        private readonly ThreadSafeInt connectingState = new ThreadSafeInt(BEFORECONNECTING);
+        private readonly ThreadSafeInt connectingState = new ThreadSafeInt(BEFORE_CONNECTING);
         //connectingState states
-        private const int BEFORECONNECTING = 0;
+        private const int BEFORE_CONNECTING = 0;
 
         private const int CONNECTING = 1;
 
-        private const int PENDINGCONNECTASYNC = 2;
+        private const int PENDING_CONNECT_ASYNC = 2;
 
         private const int CONNECTDONE = 3;
 
@@ -72,13 +72,13 @@ namespace org.apache.zookeeper
         }
 
         void ConnectAsyncCompleted(object sender, SocketAsyncEventArgs eventArgs) {
-            connectingState.SetValue(CONNECTING, PENDINGCONNECTASYNC);
+            connectingState.SetValue(CONNECTING, PENDING_CONNECT_ASYNC);
             wakeupCnxn();
 	    }
 
         void ReceiveCompleted()
         {
-            pendingIncomingDataNotifierState.SetValue(RUNNING, NOTRUNNING);
+            receiveState.SetValue(RECEIVE_RUNNING, RECEIVE_NOT_RUNNING);
             if(isConnectDone()) wakeupCnxn();
         }
 
@@ -244,7 +244,7 @@ namespace org.apache.zookeeper
 				}
 			}
 			socket = null;
-            connectingState.Value = BEFORECONNECTING;
+            connectingState.Value = BEFORE_CONNECTING;
 		}
 
 
@@ -268,7 +268,7 @@ namespace org.apache.zookeeper
 		{
 		    socket = sock;
 	        connectEventArgs.RemoteEndPoint = addr;
-	        connectingState.SetValue(BEFORECONNECTING, CONNECTING);
+	        connectingState.SetValue(BEFORE_CONNECTING, CONNECTING);
 	        bool isPending = sock.ConnectAsync(connectEventArgs);
             if (!isPending) {
                 connectingState.SetValue(CONNECTING, CONNECTDONE);
@@ -368,7 +368,7 @@ namespace org.apache.zookeeper
 
             doIO();
 
-            if (pendingIncomingDataNotifierState.TrySetValue(NOTRUNNING, RUNNING))
+            if (receiveState.TrySetValue(RECEIVE_NOT_RUNNING, RECEIVE_RUNNING))
             {
                 if (socket.ReceiveAsync(receiveEventArgs) == false)
                 {
@@ -451,7 +451,7 @@ namespace org.apache.zookeeper
 
 	    private bool Connectable
 	    {
-            get { return connectingState.TrySetValue(PENDINGCONNECTASYNC, CONNECTDONE); }
+            get { return connectingState.TrySetValue(PENDING_CONNECT_ASYNC, CONNECTDONE); }
 	    }
 
         internal override void close() {
