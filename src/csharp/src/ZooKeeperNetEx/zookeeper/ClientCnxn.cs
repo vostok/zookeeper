@@ -186,15 +186,14 @@ namespace org.apache.zookeeper {
             /** Servers's view of the path (may differ due to chroot) **/
             internal string serverPath;
 
-            private readonly TaskCompletionSource<bool> packetCompletion = new TaskCompletionSource<bool>();
+            private readonly SignalTask packetCompletion = new SignalTask();
 
             internal Task PacketTask {
                 get { return packetCompletion.Task; }
             }
 
             internal void SetFinished() {
-                Task.Factory.StartNew(s => ((TaskCompletionSource<bool>)s).TrySetResult(true),
-                    packetCompletion, CancellationToken.None, TaskCreationOptions.PreferFairness, TaskScheduler.Default);
+                Task.Run(() => packetCompletion.Set());
             }
             internal readonly ZooKeeper.WatchRegistration watchRegistration;
             private readonly bool readOnly;
@@ -344,13 +343,13 @@ namespace org.apache.zookeeper {
 						@event);
                 // queue the pair (watch set & event) for later processing
                 waitingEvents.Enqueue(pair);
-                waitingEventsSignal.Set();
+                waitingEventsSignal.TrySet();
             }
 
 
             private void queueEventOfDeath() {
                 waitingEvents.Enqueue(eventOfDeath);
-                waitingEventsSignal.Set();
+                waitingEventsSignal.TrySet();
             }
 
         private async Task startEventTask() {

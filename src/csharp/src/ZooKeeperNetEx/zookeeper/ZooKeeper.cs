@@ -390,7 +390,7 @@ namespace org.apache.zookeeper {
             {
                 if (@event.getState() == Watcher.Event.KeeperState.SyncConnected || @event.getState() == Watcher.Event.KeeperState.ConnectedReadOnly) 
                 { 
-                    connectedSignal.Set();
+                    connectedSignal.TrySet();
                 }
                 else
                 { 

@@ -343,7 +343,7 @@ namespace org.apache.zookeeper
 
 		internal override void wakeupCnxn()
 		{
-            somethingIsPending.Set();
+            somethingIsPending.TrySet();
 		}
 
         internal override async Task doTransport(int waitTimeOut) 
