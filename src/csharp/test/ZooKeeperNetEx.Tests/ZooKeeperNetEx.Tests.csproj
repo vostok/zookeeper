@@ -9,4 +9,6 @@
     <ProjectReference Include="..\..\src\ZooKeeperNetEx\ZooKeeperNetEx.csproj" />
   </ItemGroup>
 
+  <ProjectExtensions><VisualStudio><UserProperties __JSONSchema="https://xunit.github.io/schema/v2.3/xunit.runner.schema.json" /></VisualStudio></ProjectExtensions>
+
 </Project>
