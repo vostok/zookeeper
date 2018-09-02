@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace org.apache.utils
@@ -12,7 +13,7 @@ namespace org.apache.utils
 
         private readonly Fenced<bool> isEnabled = new Fenced<bool>(true);
 
-        private readonly ThreadSafeInt pendingMessages = new ThreadSafeInt(0);
+        private int pendingMessages;
 
         internal bool IsDisposed => logOutput.IsDisposed;
         internal bool IsEmpty => logQueue.IsEmpty;
@@ -36,7 +37,7 @@ namespace org.apache.utils
         {
             if (!isEnabled.Value && logOutput.IsDisposed) return;
             logQueue.Enqueue(str);
-            if (pendingMessages.Increment() == 1)
+            if (Interlocked.Increment(ref pendingMessages) == 1)
             {
                 startLogTask();
             }
@@ -52,8 +53,7 @@ namespace org.apache.utils
         {
             do
             {
-                string msg;
-                if (logQueue.TryDequeue(out msg))
+                if (logQueue.TryDequeue(out var msg))
                 {
                     if (isEnabled.Value && !logOutput.HasFailed)
                     {
@@ -61,7 +61,7 @@ namespace org.apache.utils
                     }
                     else logOutput.Dispose();
                 }
-            } while (pendingMessages.Decrement() > 0);
+            } while (Interlocked.Decrement(ref pendingMessages) > 0);
         }
 
         private class StreamWriterWrapper

@@ -33,25 +33,6 @@ namespace org.apache.zookeeper
 	    private bool initialized;
 
 		private Socket socket;
-
-
-        private readonly ThreadSafeInt receiveState = new ThreadSafeInt(RECEIVE_NOT_RUNNING);
-        //receiveState states
-	    private const int RECEIVE_RUNNING = 1;
-
-	    private const int RECEIVE_NOT_RUNNING = 0;
-
-
-        private readonly ThreadSafeInt connectingState = new ThreadSafeInt(BEFORE_CONNECTING);
-        //connectingState states
-        private const int BEFORE_CONNECTING = 0;
-
-        private const int CONNECTING = 1;
-
-        private const int PENDING_CONNECT_ASYNC = 2;
-
-        private const int CONNECTDONE = 3;
-
         
         private readonly SignalTask somethingIsPending = new SignalTask();
 
@@ -59,29 +40,41 @@ namespace org.apache.zookeeper
 
         private readonly Fenced<bool> writeEnabled = new Fenced<bool>(false);
         
-	    private readonly SocketAsyncEventArgs receiveEventArgs;
+	    private readonly SocketAsyncEventArgs socketAsyncEventArgs;
 
-        private SocketAsyncEventArgs connectEventArgs = new SocketAsyncEventArgs();
+        private readonly SignalTask SocketAsyncEventSignal = new SignalTask();
 
-        internal ClientCnxnSocketNIO(ClientCnxn cnxn) : base(cnxn) 
-        {
-            receiveEventArgs = new SocketAsyncEventArgs();
-            receiveEventArgs.SocketError = SocketError.Success;
-            receiveEventArgs.SetBuffer(new byte[0], 0, 0);
-            receiveEventArgs.Completed += delegate { ReceiveCompleted(); };
-        }
+	    private Task<SocketAsyncOperation> SocketAsyncEventTask;
 
-        void ConnectAsyncCompleted(object sender, SocketAsyncEventArgs eventArgs) {
-            connectingState.SetValue(CONNECTING, PENDING_CONNECT_ASYNC);
-            wakeupCnxn();
+	    internal ClientCnxnSocketNIO(ClientCnxn cnxn) : base(cnxn)
+	    {
+	        socketAsyncEventArgs = new SocketAsyncEventArgs();
+	        socketAsyncEventArgs.SetBuffer(new byte[0], 0, 0);
+	        socketAsyncEventArgs.Completed += delegate { SocketAsyncEventSignal.Set(); };
 	    }
 
-        void ReceiveCompleted()
-        {
-            receiveState.SetValue(RECEIVE_RUNNING, RECEIVE_NOT_RUNNING);
-            if(isConnectDone()) wakeupCnxn();
-        }
+	    private async Task<SocketAsyncOperation> SocketActionAsync(Func<SocketAsyncEventArgs, bool> socketAction)
+	    {
+	        SocketAsyncEventSignal.Reset();
+	        if (socketAction(socketAsyncEventArgs) == false)
+	        {
+	            SocketAsyncEventSignal.Set();
+	        }
 
+	        await SocketAsyncEventSignal.Task;
+
+	        if (socketAsyncEventArgs.LastOperation == SocketAsyncOperation.Receive && socket.Available == 0)
+	        {
+	            socketAsyncEventArgs.SocketError = SocketError.ConnectionReset;
+	        }
+
+	        if (socketAsyncEventArgs.SocketError != SocketError.Success)
+	        {
+	            throw new SocketException((int) socketAsyncEventArgs.SocketError);
+	        }
+
+	        return socketAsyncEventArgs.LastOperation;
+	    }
 
 	    internal override bool isConnected() {
 	        return socket != null;
@@ -94,11 +87,12 @@ namespace org.apache.zookeeper
 			{
 				throw new IOException("Socket is null!");
 			}
-			if (Readable || isConnectDone() && localSock.Connected == false)
+			if (Readable && SocketAsyncEventTask.IsCompleted && SocketAsyncEventTask.Result == SocketAsyncOperation.Receive)
 			{
 			    try
 			    {
 			        localSock.read(incomingBuffer);
+			        SocketAsyncEventTask = SocketActionAsync(socket.ReceiveAsync);
 			    }
 				catch(Exception e)
 				{
@@ -202,8 +196,6 @@ namespace org.apache.zookeeper
 
 		internal override async Task cleanup()
 		{
-		    connectEventArgs.Completed -= ConnectAsyncCompleted;
-            connectEventArgs.Dispose();
             readEnabled.Value = false;
             writeEnabled.Value = false;
 			if (socket != null)
@@ -239,12 +231,22 @@ namespace org.apache.zookeeper
 				{
 					if (LOG.isDebugEnabled())
 					{
-                        LOG.debug("Ignoring exception during sockKey close", e);
+                        LOG.debug("Ignoring exception during socket close", e);
+					}
+				}
+			    try
+				{
+				    await SocketAsyncEventTask;
+				}
+				catch (Exception e)
+				{
+					if (LOG.isDebugEnabled())
+					{
+                        LOG.debug("Ignoring exception awaiting SocketAsyncEventTask", e);
 					}
 				}
 			}
 			socket = null;
-            connectingState.Value = BEFORE_CONNECTING;
 		}
 
 
@@ -267,22 +269,14 @@ namespace org.apache.zookeeper
         private void registerAndConnect(Socket sock, EndPoint addr)
 		{
 		    socket = sock;
-	        connectEventArgs.RemoteEndPoint = addr;
-	        connectingState.SetValue(BEFORE_CONNECTING, CONNECTING);
-	        bool isPending = sock.ConnectAsync(connectEventArgs);
-            if (!isPending) {
-                connectingState.SetValue(CONNECTING, CONNECTDONE);
-	            clientCnxn.primeConnection();
-	        }
-		}
+	        socketAsyncEventArgs.RemoteEndPoint = addr;
+	        SocketAsyncEventTask = SocketActionAsync(socket.ConnectAsync);
+	    }
 
         internal override void connect(IPEndPoint addr)
 		{
 			Socket sock = createSock(addr.AddressFamily);
             
-            connectEventArgs = new SocketAsyncEventArgs();
-            connectEventArgs.Completed += ConnectAsyncCompleted;
-		    receiveEventArgs.SocketError = SocketError.Success;
             try
 			{
 			   registerAndConnect(sock, addr);
@@ -313,7 +307,7 @@ namespace org.apache.zookeeper
             // yet bulletproof way
             try
             {
-                return connectEventArgs.RemoteEndPoint;
+                return socketAsyncEventArgs.RemoteEndPoint;
             }
             catch (NullReferenceException)
             {
@@ -348,7 +342,8 @@ namespace org.apache.zookeeper
 
         internal override async Task doTransport(int waitTimeOut) 
         {
-            await Task.WhenAny(somethingIsPending.Task, Task.Delay(waitTimeOut < 0 ? 0 : waitTimeOut)).ConfigureAwait(false);
+            var delay = Task.Delay(waitTimeOut < 0 ? 0 : waitTimeOut);
+            await Task.WhenAny(somethingIsPending.Task, SocketAsyncEventTask, delay).ConfigureAwait(false);
             somethingIsPending.Reset();
 
             // Everything below and until we get back to the select is
@@ -356,30 +351,14 @@ namespace org.apache.zookeeper
 			// Why we just have to do this once, here
 			updateNow();
 
-            if (Connectable)
-	        {
-	            if (connectEventArgs.SocketError == SocketError.Success)
-	            {
-	                updateLastSendAndHeard();
-	                clientCnxn.primeConnection();
-	            }
-	            else throw new SocketException((int) connectEventArgs.SocketError);
-	        }
+            if (SocketAsyncEventTask.IsCompleted && SocketAsyncEventTask.Result == SocketAsyncOperation.Connect)
+            {
+                updateLastSendAndHeard();
+                clientCnxn.primeConnection();
+                SocketAsyncEventTask = SocketActionAsync(socket.ReceiveAsync);
+            }
 
             doIO();
-
-            if (receiveState.TrySetValue(RECEIVE_NOT_RUNNING, RECEIVE_RUNNING))
-            {
-                if (socket.ReceiveAsync(receiveEventArgs) == false)
-                {
-                    ReceiveCompleted();
-                }
-            }
-
-            if (receiveEventArgs.SocketError != SocketError.Success)
-            {
-                throw new SocketException((int) receiveEventArgs.SocketError);
-            }
 
 	        if (clientCnxn.getState().isConnected())
 			{   
@@ -393,14 +372,10 @@ namespace org.apache.zookeeper
 			}
 		}
 
-        private bool isConnectDone() {
-            return connectingState.Value == CONNECTDONE;
-        }
-
         private void enableWrite()
         {
             writeEnabled.Value = true;
-            if (isConnectDone()) wakeupCnxn();
+            wakeupCnxn();
         }
 
         private void disableWrite()
@@ -423,14 +398,7 @@ namespace org.apache.zookeeper
 	    {
 	        get
 	        {
-	            try
-	            {
-                    return writeEnabled.Value && isConnectDone() && socket.Connected;
-	            }
-	            catch
-	            {
-	                return false;
-	            }
+	            return writeEnabled.Value;
 	        }
 	    }
 
@@ -438,26 +406,13 @@ namespace org.apache.zookeeper
 	    {
 	        get
 	        {
-	            try
-	            {
-	                return readEnabled.Value && isConnectDone() && socket.Available > 0;
-	            }
-	            catch
-	            {
-	                return false;
-	            }
+	            return readEnabled.Value;
 	        }
-	    }
-
-	    private bool Connectable
-	    {
-            get { return connectingState.TrySetValue(PENDING_CONNECT_ASYNC, CONNECTDONE); }
 	    }
 
         internal override void close() {
             base.close();
-            connectEventArgs.Dispose();
-            receiveEventArgs.Dispose();
+            socketAsyncEventArgs.Dispose();
         }
     }
 

@@ -15,7 +15,6 @@
  *  limitations under the License.
  *
  */
-using System;
 using System.Threading;
 
 namespace org.apache.utils
@@ -52,35 +51,6 @@ namespace org.apache.utils
         private static void MemoryBarrier()
         {
             Interlocked.MemoryBarrier();
-        }
-    }
-
-    internal class ThreadSafeInt : Fenced<int>
-    {
-        public ThreadSafeInt(int value)
-            : base(value)
-        {
-        }
-
-        public bool TrySetValue(int preconditionValue, int newValue)
-        {
-            return Interlocked.CompareExchange(ref m_Value, newValue, preconditionValue) == preconditionValue;
-        }
-
-        public void SetValue(int preconditionValue, int newValue)
-        {
-            int actualValue = Interlocked.CompareExchange(ref m_Value, newValue, preconditionValue);
-            if (actualValue != preconditionValue)
-                throw new InvalidOperationException("Expected=" + preconditionValue + "Actual=" + actualValue);
-        }
-
-        public int Increment() {
-            return Interlocked.Increment(ref m_Value);
-        }
-
-        public int Decrement()
-        {
-            return Interlocked.Decrement(ref m_Value);
         }
     }
 }
