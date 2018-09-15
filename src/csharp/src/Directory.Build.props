@@ -5,17 +5,12 @@
     <IncludeSymbols>True</IncludeSymbols>
     <IncludeSource>true</IncludeSource>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard1.3</TargetFrameworks>
   </PropertyGroup>
 
-  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
+  <ItemGroup>
     <PackageReference Include="System.Net.NameResolution" Version="$(SystemNetNameResolution)" />
     <PackageReference Include="System.Diagnostics.TraceSource" Version="$(SystemDiagnosticsTraceSource)" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net45' ">
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
 </Project>

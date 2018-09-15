@@ -1032,7 +1032,7 @@ namespace org.apache.zookeeper {
         /// <exception cref="KeeperException.SessionExpiredException">the server says the session has expired, you should create a new client</exception>
         /// <exception cref="KeeperException">the server signals an error with a non-zero error code</exception>  
         /// <exception cref="ArgumentException">when <paramref name="path"/> is invalid</exception>
-        public Task sync(string path) {
+        public async Task sync(string path) {
             string clientPath = path;
             PathUtils.validatePath(clientPath);
             string serverPath = prependChroot(clientPath);
@@ -1041,7 +1041,7 @@ namespace org.apache.zookeeper {
             SyncRequest request = new SyncRequest();
             SyncResponse response = new SyncResponse();
             request.setPath(serverPath);
-            return cnxn.queuePacket(h, new ReplyHeader(), request, response, clientPath, serverPath, null).PacketTask;
+            await cnxn.queuePacket(h, new ReplyHeader(), request, response, clientPath, serverPath, null).Task;
         }
 
         /// <summary>

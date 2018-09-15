@@ -170,7 +170,7 @@ namespace org.apache.zookeeper {
 	 * This class allows us to pass the headers and the relevant records around.
 	 */
 
-        public sealed class Packet {
+        public sealed class Packet : TaskCompletionSource<bool> {
             internal readonly RequestHeader requestHeader;
 
             internal readonly ReplyHeader replyHeader;
@@ -186,14 +186,8 @@ namespace org.apache.zookeeper {
             /** Servers's view of the path (may differ due to chroot) **/
             internal string serverPath;
 
-            private readonly SignalTask packetCompletion = new SignalTask();
-
-            internal Task PacketTask {
-                get { return packetCompletion.Task; }
-            }
-
             internal void SetFinished() {
-                Task.Run(() => packetCompletion.Set());
+                TrySetResult(true);
             }
             internal readonly ZooKeeper.WatchRegistration watchRegistration;
             private readonly bool readOnly;
@@ -209,7 +203,7 @@ namespace org.apache.zookeeper {
 
             internal Packet(RequestHeader requestHeader, ReplyHeader replyHeader,
                 Record request, Record response,
-                ZooKeeper.WatchRegistration watchRegistration, bool readOnly) {
+                ZooKeeper.WatchRegistration watchRegistration, bool readOnly):base(TaskCreationOptions.RunContinuationsAsynchronously) {
                 this.requestHeader = requestHeader;
                 this.replyHeader = replyHeader;
                 this.request = request;
@@ -248,7 +242,7 @@ namespace org.apache.zookeeper {
                 StringBuilder sb = new StringBuilder();
                 sb.Append("  clientPath:").Append(clientPath);
                 sb.Append("  serverPath:").Append(serverPath);
-                sb.Append("    finished:").Append(packetCompletion.Task.IsCompleted);
+                sb.Append("    finished:").Append(Task.IsCompleted);
                 sb.Append("     header::").Append(requestHeader);
                 sb.Append("replyHeader::").Append(replyHeader);
                 sb.Append("    request::").Append(request);
@@ -985,7 +979,7 @@ namespace org.apache.zookeeper {
             ZooKeeper.WatchRegistration watchRegistration) {
             ReplyHeader rep = new ReplyHeader();
             Packet packet = queuePacket(h, rep, request, response, null, null, watchRegistration);
-            await packet.PacketTask.ConfigureAwait(false);
+            await packet.Task.ConfigureAwait(false);
             return rep;
         }
 
