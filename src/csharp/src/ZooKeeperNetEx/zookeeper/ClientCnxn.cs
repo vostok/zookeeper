@@ -963,14 +963,8 @@ namespace org.apache.zookeeper {
                 finally {
                     disconnect();
                 }
-#if DEBUG
-                var closeDelay = Task.Delay(1000);
-                await Task.WhenAny(Task.WhenAll(sendTask, eventTask), closeDelay).ConfigureAwait(false);
-                if (closeDelay.IsCompleted)
-                {
-                    throw new TimeoutException("waited more the a second for disconnection");
-                }
-#endif
+                await sendTask;
+                await eventTask;
             }
         }
 

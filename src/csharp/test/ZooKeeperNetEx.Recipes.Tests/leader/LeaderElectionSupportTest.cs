@@ -24,17 +24,17 @@ using Xunit;
 
 namespace org.apache.zookeeper.recipes.leader {
     public sealed class LeaderElectionSupportTest : ClientBase {
-        private static readonly ILogProducer logger = TypeLogger<LeaderElectionSupportTest>.Instance;
         private static int globalCounter;
         private readonly string root = "/" + Interlocked.Increment(ref globalCounter);
-        private readonly ZooKeeper zooKeeper;
+        private ZooKeeper zooKeeper;
 
-        public LeaderElectionSupportTest() {
+        public override async Task InitializeAsync()
+        {
+            await base.InitializeAsync();
+            zooKeeper = await createClient();
 
-            zooKeeper = createClient().Result;
-
-            zooKeeper.createAsync(root, new byte[0],
-                ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT).Wait();
+            await zooKeeper.createAsync(root, new byte[0],
+                ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
         }
 
         [Fact]

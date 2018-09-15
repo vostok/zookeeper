@@ -16,7 +16,6 @@
  *
  */
 
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +24,7 @@ using Xunit;
 
 namespace org.apache.zookeeper {
     [Collection("Setup")]
-    public abstract class ClientBase:IDisposable {
+    public abstract class ClientBase:IAsyncLifetime {
 
         protected static class Arrays {
             public static List<T> asList<T>(params T[]objs) {
@@ -34,57 +33,40 @@ namespace org.apache.zookeeper {
         }
 
         public const int CONNECTION_TIMEOUT = 4000;
-        private readonly string m_currentRoot;
+        private string m_currentRoot;
+        private ZooKeeper m_rootZK;
 
         private const string hostPort = "127.0.0.1,localhost";
 
         private readonly ConcurrentBag<ZooKeeper> allClients = new ConcurrentBag<ZooKeeper>();
         
-        protected Task<ZooKeeper> createClient(string chroot = null, int timeout = CONNECTION_TIMEOUT)
+        protected Task<ZooKeeper> createClient(string chroot = null)
         {
-            return createClient(NullWatcher.Instance, chroot, timeout);
+            return createClient(NullWatcher.Instance, chroot);
         }
 
-        protected async Task<ZooKeeper> createClient(Watcher watcher, string chroot=null, int timeout = CONNECTION_TIMEOUT)
+        protected async Task<ZooKeeper> createClient(Watcher watcher, string chroot=null)
         {
             if (watcher == null) watcher = NullWatcher.Instance;
-            var zk = new ZooKeeper(hostPort + m_currentRoot + chroot, timeout, watcher);
+            var zk = new ZooKeeper(hostPort + m_currentRoot + chroot, CONNECTION_TIMEOUT, watcher);
             allClients.Add(zk);
-            if (!await zk.connectedSignal.Task.WithTimeout(timeout)) {
+            if (!await zk.connectedSignal.Task.WithTimeout(CONNECTION_TIMEOUT)) {
                 Assert.fail("Unable to connect to server");
             }
 
             return zk;
         }
 
-
-        protected ClientBase()
+        public virtual async Task InitializeAsync()
         {
-            m_currentRoot = createNode().Result;
+            m_rootZK = await createClient();
+            m_currentRoot = await m_rootZK.createAsync("/", null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
         }
-
-
-        public void Dispose()
+        
+        public virtual async Task DisposeAsync()
         {
-            Task.WaitAll(allClients.Select(c => c.closeAsync()).ToArray());
-            deleteNode(m_currentRoot).Wait();
-        }
-
-        private static Task deleteNode(string path)
-        {
-            return ZooKeeper.Using(hostPort, CONNECTION_TIMEOUT, NullWatcher.Instance, zk =>
-            {
-                return ZKUtil.deleteRecursiveAsync(zk, path);
-            });
-        }
-
-        private static Task<string> createNode()
-        {
-            return ZooKeeper.Using(hostPort, CONNECTION_TIMEOUT, NullWatcher.Instance, async zk =>
-            {
-                string newNode = await zk.createAsync("/", null, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
-                return newNode;
-            });
+            await ZKUtil.deleteRecursiveAsync(m_rootZK, m_currentRoot);
+            await Task.WhenAll(allClients.Select(c => c.closeAsync()));
         }
 
         /// <summary>

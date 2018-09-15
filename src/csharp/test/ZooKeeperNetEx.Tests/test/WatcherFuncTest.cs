@@ -59,22 +59,26 @@ namespace org.apache.zookeeper.test
 			    while (events.TryTake(out @event)) ;
 			}
 		}
-		private SimpleWatcher client_dwatch;
-		private readonly ZooKeeper client;
+		private readonly SimpleWatcher client_dwatch;
+		private ZooKeeper client;
 		private readonly SimpleWatcher lsnr_dwatch;
-		private readonly ZooKeeper lsnr;
+		private ZooKeeper lsnr;
 
 		private readonly IList<Watcher.Event.EventType> expected;
 
+	    public override async Task InitializeAsync()
+	    {
+	        await base.InitializeAsync();
+
+	        client = await createClient(client_dwatch);
+
+	        lsnr = await createClient(lsnr_dwatch);
+	    }
 
 		public WatcherFuncTest()
 		{
 			client_dwatch = new SimpleWatcher();
-			client = createClient(client_dwatch).Result;
-
 			lsnr_dwatch = new SimpleWatcher();
-			lsnr = createClient(lsnr_dwatch).Result;
-
 			expected = new List<Watcher.Event.EventType>();
 		}
 
