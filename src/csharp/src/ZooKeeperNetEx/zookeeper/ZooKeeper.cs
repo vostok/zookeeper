@@ -1041,7 +1041,7 @@ namespace org.apache.zookeeper {
             SyncRequest request = new SyncRequest();
             SyncResponse response = new SyncResponse();
             request.setPath(serverPath);
-            await cnxn.queuePacket(h, new ReplyHeader(), request, response, clientPath, serverPath, null).Task;
+            await cnxn.queuePacket(h, new ReplyHeader(), request, response, clientPath, serverPath, null).Task.ConfigureAwait(false);
         }
 
         /// <summary>

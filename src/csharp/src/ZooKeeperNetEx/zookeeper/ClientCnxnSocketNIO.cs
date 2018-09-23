@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using org.apache.utils;
+using ZooKeeperNetEx.utils;
 
 // <summary>
 // Licensed to the Apache Software Foundation (ASF) under one
@@ -42,7 +43,7 @@ namespace org.apache.zookeeper
         
 	    private readonly SocketAsyncEventArgs socketAsyncEventArgs;
 
-        private readonly SignalTask SocketAsyncEventSignal = new SignalTask();
+        private readonly AwaitableSignal SocketAsyncEventSignal = new AwaitableSignal();
 
 	    private Task<SocketAsyncOperation> SocketAsyncEventTask;
 
@@ -50,18 +51,17 @@ namespace org.apache.zookeeper
 	    {
 	        socketAsyncEventArgs = new SocketAsyncEventArgs();
 	        socketAsyncEventArgs.SetBuffer(new byte[0], 0, 0);
-	        socketAsyncEventArgs.Completed += delegate { SocketAsyncEventSignal.Set(); };
+	        socketAsyncEventArgs.Completed += delegate { SocketAsyncEventSignal.TrySignal(); };
 	    }
 
 	    private async Task<SocketAsyncOperation> SocketActionAsync(Func<SocketAsyncEventArgs, bool> socketAction)
 	    {
-	        SocketAsyncEventSignal.Reset();
 	        if (socketAction(socketAsyncEventArgs) == false)
 	        {
-	            SocketAsyncEventSignal.Set();
+	            SocketAsyncEventSignal.TrySetCompleted();
 	        }
 
-	        await SocketAsyncEventSignal.Task;
+	        await SocketAsyncEventSignal;
 
 	        if (socketAsyncEventArgs.LastOperation == SocketAsyncOperation.Receive && socket.Available == 0)
 	        {
