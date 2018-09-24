@@ -28,7 +28,6 @@ using org.apache.zookeeper.client;
 using org.apache.jute;
 using org.apache.utils;
 using org.apache.zookeeper.proto;
-using ZooKeeperNetEx.utils;
 
 namespace org.apache.zookeeper {
 /**
@@ -311,7 +310,7 @@ namespace org.apache.zookeeper {
             }
         }
 
-      private readonly AwaitableSignal waitingEventsSignal = new AwaitableSignal();
+      private readonly SignalTask waitingEventsSignal = new SignalTask();
       
       private readonly ConcurrentQueue<WatcherSetEventPair> waitingEvents=new ConcurrentQueue<WatcherSetEventPair>();
 
@@ -338,13 +337,13 @@ namespace org.apache.zookeeper {
 						@event);
                 // queue the pair (watch set & event) for later processing
                 waitingEvents.Enqueue(pair);
-                waitingEventsSignal.TrySignal();
+                waitingEventsSignal.TrySet();
             }
 
 
             private void queueEventOfDeath() {
                 waitingEvents.Enqueue(eventOfDeath);
-                waitingEventsSignal.TrySignal();
+                waitingEventsSignal.TrySet();
             }
 
         private async Task startEventTask() {
@@ -352,7 +351,8 @@ namespace org.apache.zookeeper {
 
             try {
             while (!(wasKilled && waitingEvents.IsEmpty)) {
-                await waitingEventsSignal;
+                await waitingEventsSignal.Task.ConfigureAwait(false);
+                waitingEventsSignal.Reset();
 
                 WatcherSetEventPair @event;
                 while (waitingEvents.TryDequeue(out @event)) {
