@@ -16,6 +16,7 @@
  *
  */
 using System.Threading.Tasks;
+using ZooKeeperNetEx.utils;
 
 namespace org.apache.utils
 {
@@ -24,7 +25,7 @@ namespace org.apache.utils
     /// </summary>
     public class SignalTask
     {
-        private readonly Fenced<TaskCompletionSource<bool>> tcs = new Fenced<TaskCompletionSource<bool>>(new TaskCompletionSource<bool>());
+        private readonly VolatileReference<TaskCompletionSource<bool>> tcs = new VolatileReference<TaskCompletionSource<bool>>(new TaskCompletionSource<bool>());
 
         /// <summary>
         /// Gets the underlying <see cref="T:System.Threading.Tasks.Task`1" />.

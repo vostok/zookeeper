@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using ZooKeeperNetEx.utils;
 
 namespace org.apache.utils
 {
@@ -11,7 +12,7 @@ namespace org.apache.utils
     {
         private readonly StreamWriterWrapper logOutput;
 
-        private readonly Fenced<bool> isEnabled = new Fenced<bool>(true);
+        private readonly VolatileBool isEnabled = new VolatileBool(true);
 
         private int pendingMessages;
 
@@ -67,9 +68,9 @@ namespace org.apache.utils
         private class StreamWriterWrapper
         {
             private readonly string fileName;
-            private readonly Fenced<bool> isDisposed = new Fenced<bool>(true);
-            private readonly Fenced<bool> hasFailed = new Fenced<bool>(false);
-            internal readonly Fenced<bool> ThrowWrite = new Fenced<bool>(false);
+            private readonly VolatileBool isDisposed = new VolatileBool(true);
+            private readonly VolatileBool hasFailed = new VolatileBool(false);
+            internal readonly VolatileBool ThrowWrite = new VolatileBool(false);
             private StreamWriter streamWriter;
 
             public StreamWriterWrapper(string filename)

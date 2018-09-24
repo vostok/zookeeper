@@ -28,6 +28,7 @@ using org.apache.zookeeper.client;
 using org.apache.jute;
 using org.apache.utils;
 using org.apache.zookeeper.proto;
+using ZooKeeperNetEx.utils;
 
 namespace org.apache.zookeeper {
 /**
@@ -85,7 +86,7 @@ namespace org.apache.zookeeper {
 	 * been increased/decreased by the server which applies bounds to this
 	 * value.
 	 */
-        private readonly Fenced<int> negotiatedSessionTimeout = new Fenced<int>(0);
+        private readonly VolatileInt negotiatedSessionTimeout = new VolatileInt(0);
         private int readTimeout;
         private readonly int sessionTimeout;
         private readonly ZooKeeper zooKeeper;
@@ -113,7 +114,7 @@ namespace org.apache.zookeeper {
 	 * connection (client sends session disconnect to server as part of close
 	 * operation)
 	 */
-        private readonly Fenced<bool> closing = new Fenced<bool>(false);
+        private readonly VolatileBool closing = new VolatileBool(false);
 
         /**
 	 * A set of ZooKeeper hosts this client could connect to.
@@ -132,7 +133,7 @@ namespace org.apache.zookeeper {
 	 // If this field is false (which implies we haven't seen r/w server before)
 	 // then non-zero sessionId is fake, otherwise it is valid.
 	 //
-        internal readonly Fenced<bool> seenRwServerBefore = new Fenced<bool>(false);
+        internal readonly VolatileBool seenRwServerBefore = new VolatileBool(false);
         
         public long getSessionId() {
             return sessionId;
@@ -291,7 +292,7 @@ namespace org.apache.zookeeper {
             readTimeout = sessionTimeout*2/3;
             readOnly = canBeReadOnly;
             clientCnxnSocket = new ClientCnxnSocketNIO(this);
-            state.Value = ZooKeeper.States.CONNECTING;
+            state.Value = (int) ZooKeeper.States.CONNECTING;
         }
         public void start() {
             sendTask = startSendTask();
@@ -321,15 +322,14 @@ namespace org.apache.zookeeper {
 		 * task actually processes the event and hands it to the watcher. But for all
 		 * But for all intents and purposes this is the state.
 		 */
-            private readonly Fenced<Watcher.Event.KeeperState> sessionState =
-                new Fenced<Watcher.Event.KeeperState>(Watcher.Event.KeeperState.Disconnected);
+            private readonly VolatileInt sessionState = new VolatileInt((int) Watcher.Event.KeeperState.Disconnected);
 
         private void queueEvent(WatchedEvent @event) {
                 if (@event.get_Type() == Watcher.Event.EventType.None &&
-                    sessionState.Value == @event.getState()) {
+                    sessionState.Value == (int) @event.getState()) {
                     return;
                 }
-                sessionState.Value = @event.getState();
+                sessionState.Value = (int) @event.getState();
                 // materialize the watchers based on the event
                 WatcherSetEventPair pair = new WatcherSetEventPair(
                     watcher.materialize(@event.getState(), @event.get_Type(),
@@ -406,7 +406,7 @@ namespace org.apache.zookeeper {
             //finishPacket(p); <-- moved outside since it should be called outside of a lock
         }
 
-        private readonly Fenced<long> lastZxid = new Fenced<long>(0);
+        private readonly VolatileLong lastZxid = new VolatileLong(0);
 
         private class SessionTimeoutException : IOException {
             public SessionTimeoutException(string msg) : base(msg) {
@@ -450,7 +450,7 @@ namespace org.apache.zookeeper {
                 if (replyHdr.getXid() == -4) {
                     // -4 is the xid for AuthPacket               
                     if (replyHdr.getErr() == (int) KeeperException.Code.AUTHFAILED) {
-                        state.Value = ZooKeeper.States.AUTH_FAILED;
+                        state.Value = (int) ZooKeeper.States.AUTH_FAILED;
                         queueEvent(new WatchedEvent(Watcher.Event.EventType.None,
                             Watcher.Event.KeeperState.AuthFailed, null));
                     }
@@ -639,7 +639,7 @@ namespace org.apache.zookeeper {
             private int pingRwTimeout = minPingRwTimeout;
 
             private void startConnect(ResolvedEndPoint addr) {
-                state.Value = ZooKeeper.States.CONNECTING;
+                state.Value = (int) ZooKeeper.States.CONNECTING;
 
                 logStartConnect(addr);
 				
@@ -878,7 +878,7 @@ namespace org.apache.zookeeper {
                 byte[] _sessionPasswd, bool isRO) {
                 negotiatedSessionTimeout.Value = _negotiatedSessionTimeout;
                 if (negotiatedSessionTimeout.Value <= 0) {
-                    state.Value = ZooKeeper.States.CLOSED;
+                    state.Value = (int) ZooKeeper.States.CLOSED;
                     queueEvent(new WatchedEvent(
                         Watcher.Event.EventType.None,
                         Watcher.Event.KeeperState.Expired, null));
@@ -895,8 +895,8 @@ namespace org.apache.zookeeper {
                 hostProvider.onConnected();
                 sessionId = _sessionId;
                 sessionPasswd = _sessionPasswd;
-                state.Value = (isRO) ? 
-				              ZooKeeper.States.CONNECTEDREADONLY : ZooKeeper.States.CONNECTED;
+                state.Value = (int) (isRO ? 
+                    ZooKeeper.States.CONNECTEDREADONLY : ZooKeeper.States.CONNECTED);
                 seenRwServerBefore.Value |= !isRO;
                 LOG.info("Session establishment complete on server " 
 						 + clientCnxnSocket.getRemoteSocketAddress()
@@ -911,7 +911,7 @@ namespace org.apache.zookeeper {
             }
 
             private void close() {
-                state.Value = ZooKeeper.States.CLOSED;
+                state.Value = (int) ZooKeeper.States.CLOSED;
                 clientCnxnSocket.wakeupCnxn();
             }
         
@@ -964,7 +964,7 @@ namespace org.apache.zookeeper {
 
         private int xid = 1;
 
-        private readonly Fenced<ZooKeeper.States> state = new Fenced<ZooKeeper.States>(ZooKeeper.States.NOT_CONNECTED);
+        private readonly VolatileInt state = new VolatileInt((int) ZooKeeper.States.NOT_CONNECTED);
 		
         /*
              * getXid() is called externally by ClientCnxnNIO::doIO() when packets are
@@ -1027,7 +1027,7 @@ namespace org.apache.zookeeper {
         }
 
         internal ZooKeeper.States getState() {
-            return state.Value;
+            return (ZooKeeper.States) state.Value;
         }
     }
 }

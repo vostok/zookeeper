@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using org.apache.zookeeper.data;
 using org.apache.utils;
+using ZooKeeperNetEx.utils;
 
 // 
 // <summary>
@@ -43,7 +44,7 @@ namespace org.apache.zookeeper.recipes.@lock
 		private string ownerId;
 		private string lastChildId;
 		private readonly byte[] data = {0x12, 0x34};
-	    private readonly Fenced<LockListener> callback = new Fenced<LockListener>(null);
+	    private readonly VolatileReference<LockListener> callback = new VolatileReference<LockListener>(null);
 		private readonly LockZooKeeperOperation zop;
 
 		/// <summary>

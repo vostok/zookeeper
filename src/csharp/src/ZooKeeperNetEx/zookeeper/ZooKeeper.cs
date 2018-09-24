@@ -26,6 +26,7 @@ using org.apache.zookeeper.client;
 using org.apache.zookeeper.common;
 using org.apache.zookeeper.data;
 using org.apache.zookeeper.proto;
+using ZooKeeperNetEx.utils;
 
 namespace org.apache.zookeeper {
     /// <summary>
@@ -117,7 +118,7 @@ namespace org.apache.zookeeper {
             internal readonly Dictionary<string, HashSet<Watcher>> childWatches =
                 new Dictionary<string, HashSet<Watcher>>();
 
-            private readonly Fenced<Watcher> _defaultWatcher = new Fenced<Watcher>(null);
+            private readonly VolatileReference<Watcher> _defaultWatcher = new VolatileReference<Watcher>(null);
 
             internal Watcher defaultWatcher {
                 get { return _defaultWatcher.Value; }

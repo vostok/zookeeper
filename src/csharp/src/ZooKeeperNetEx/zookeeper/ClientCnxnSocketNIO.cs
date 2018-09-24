@@ -37,9 +37,9 @@ namespace org.apache.zookeeper
         
         private readonly SignalTask somethingIsPending = new SignalTask();
 
-	    private readonly Fenced<bool> readEnabled = new Fenced<bool>(false);
+	    private readonly VolatileBool readEnabled = new VolatileBool(false);
 
-        private readonly Fenced<bool> writeEnabled = new Fenced<bool>(false);
+        private readonly VolatileBool writeEnabled = new VolatileBool(false);
         
 	    private readonly SocketAsyncEventArgs socketAsyncEventArgs;
 
