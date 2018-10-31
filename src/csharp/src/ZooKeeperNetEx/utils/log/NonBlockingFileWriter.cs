@@ -14,7 +14,7 @@ namespace org.apache.utils
 
         private readonly VolatileBool isEnabled = new VolatileBool(true);
 
-        private int pendingMessages;
+        private readonly VolatileInt pendingMessages = new VolatileInt(0);
 
         internal bool IsDisposed => logOutput.IsDisposed;
         internal bool IsEmpty => logQueue.IsEmpty;
@@ -38,7 +38,7 @@ namespace org.apache.utils
         {
             if (!isEnabled.Value && logOutput.IsDisposed) return;
             logQueue.Enqueue(str);
-            if (Interlocked.Increment(ref pendingMessages) == 1)
+            if (pendingMessages.Increment() == 1)
             {
                 startLogTask();
             }
@@ -62,7 +62,7 @@ namespace org.apache.utils
                     }
                     else logOutput.Dispose();
                 }
-            } while (Interlocked.Decrement(ref pendingMessages) > 0);
+            } while (pendingMessages.Decrement() > 0);
         }
 
         private class StreamWriterWrapper
