@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using org.apache.utils;
 using ZooKeeperNetEx.utils;
@@ -17,45 +18,19 @@ namespace org.apache.zookeeper
 
 		private Socket socket;
         
-        private readonly SignalTask somethingIsPending = new SignalTask();
+        private readonly AwaitableSignal somethingIsPending = new AwaitableSignal();
 
 	    private readonly VolatileBool readEnabled = new VolatileBool(false);
 
         private readonly VolatileBool writeEnabled = new VolatileBool(false);
+
+	    private readonly VolatileReference<SocketContext> _socketAsyncEventArgsWrapper = new VolatileReference<SocketContext>(null);
+
+	    private readonly Timer _timer;
         
-	    private readonly SocketAsyncEventArgs socketAsyncEventArgs;
-
-        private readonly AwaitableSignal SocketAsyncEventSignal = new AwaitableSignal();
-
-	    private Task<SocketAsyncOperation> SocketAsyncEventTask;
-
 	    internal ClientCnxnSocketNIO(ClientCnxn cnxn) : base(cnxn)
 	    {
-	        socketAsyncEventArgs = new SocketAsyncEventArgs();
-	        socketAsyncEventArgs.SetBuffer(new byte[0], 0, 0);
-	        socketAsyncEventArgs.Completed += delegate { SocketAsyncEventSignal.TrySignal(); };
-	    }
-
-	    private async Task<SocketAsyncOperation> SocketActionAsync(Func<SocketAsyncEventArgs, bool> socketAction)
-	    {
-	        if (socketAction(socketAsyncEventArgs) == false)
-	        {
-	            SocketAsyncEventSignal.TrySetCompleted();
-	        }
-
-	        await SocketAsyncEventSignal;
-
-	        if (socketAsyncEventArgs.LastOperation == SocketAsyncOperation.Receive && socket.Available == 0)
-	        {
-	            socketAsyncEventArgs.SocketError = SocketError.ConnectionReset;
-	        }
-
-	        if (socketAsyncEventArgs.SocketError != SocketError.Success)
-	        {
-	            throw new SocketException((int) socketAsyncEventArgs.SocketError);
-	        }
-
-	        return socketAsyncEventArgs.LastOperation;
+	        _timer = new Timer(delegate { somethingIsPending.TrySignal(); }, null, Timeout.Infinite, Timeout.Infinite);
 	    }
 
 	    internal override bool isConnected() {
@@ -69,12 +44,12 @@ namespace org.apache.zookeeper
 			{
 				throw new IOException("Socket is null!");
 			}
-			if (Readable && SocketAsyncEventTask.IsCompleted && SocketAsyncEventTask.Result == SocketAsyncOperation.Receive)
+			if (Readable && _socketAsyncEventArgsWrapper.Value.GetResult() == SocketAsyncOperation.Receive)
 			{
 			    try
 			    {
 			        localSock.read(incomingBuffer);
-			        SocketAsyncEventTask = SocketActionAsync(socket.ReceiveAsync);
+                    _socketAsyncEventArgsWrapper.Value.StartReceiveAsync();
 			    }
 				catch(Exception e)
 				{
@@ -218,13 +193,13 @@ namespace org.apache.zookeeper
 				}
 			    try
 				{
-				    await SocketAsyncEventTask;
+			         _socketAsyncEventArgsWrapper.Value.Dispose();
 				}
 				catch (Exception e)
 				{
 					if (LOG.isDebugEnabled())
 					{
-                        LOG.debug("Ignoring exception awaiting SocketAsyncEventTask", e);
+			            LOG.debug("Ignoring exception during SocketAsyncEventArgs dispose", e);
 					}
 				}
 			}
@@ -251,8 +226,7 @@ namespace org.apache.zookeeper
         private void registerAndConnect(Socket sock, EndPoint addr)
 		{
 		    socket = sock;
-	        socketAsyncEventArgs.RemoteEndPoint = addr;
-	        SocketAsyncEventTask = SocketActionAsync(socket.ConnectAsync);
+            _socketAsyncEventArgsWrapper.Value = SocketContext.StartConnectAsync(somethingIsPending, sock, addr);
 	    }
 
         internal override void connect(IPEndPoint addr)
@@ -289,7 +263,7 @@ namespace org.apache.zookeeper
             // yet bulletproof way
             try
             {
-                return socketAsyncEventArgs.RemoteEndPoint;
+                return _socketAsyncEventArgsWrapper.Value.RemoteEndPoint;
             }
             catch (NullReferenceException)
             {
@@ -319,13 +293,18 @@ namespace org.apache.zookeeper
 
 		internal override void wakeupCnxn()
 		{
-            somethingIsPending.TrySet();
+            somethingIsPending.TrySignal();
 		}
 
         internal override async Task doTransport(int waitTimeOut) 
         {
-            var delay = Task.Delay(waitTimeOut < 0 ? 0 : waitTimeOut);
-            await Task.WhenAny(somethingIsPending.Task, SocketAsyncEventTask, delay).ConfigureAwait(false);
+            if (waitTimeOut > 0 && !somethingIsPending.IsCompleted)
+            {
+                _timer.Change(waitTimeOut, Timeout.Infinite);
+                await somethingIsPending;
+                _timer.Change(Timeout.Infinite, Timeout.Infinite);
+            }
+
             somethingIsPending.Reset();
 
             // Everything below and until we get back to the select is
@@ -333,11 +312,11 @@ namespace org.apache.zookeeper
 			// Why we just have to do this once, here
 			updateNow();
 
-            if (SocketAsyncEventTask.IsCompleted && SocketAsyncEventTask.Result == SocketAsyncOperation.Connect)
+            if (_socketAsyncEventArgsWrapper.Value.GetResult() == SocketAsyncOperation.Connect)
             {
                 updateLastSendAndHeard();
                 clientCnxn.primeConnection();
-                SocketAsyncEventTask = SocketActionAsync(socket.ReceiveAsync);
+                _socketAsyncEventArgsWrapper.Value.StartReceiveAsync();
             }
 
             doIO();
@@ -394,7 +373,7 @@ namespace org.apache.zookeeper
 
         internal override void close() {
             base.close();
-            socketAsyncEventArgs.Dispose();
+            _timer.Dispose();
         }
     }
 

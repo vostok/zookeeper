@@ -1,5 +1,4 @@
-﻿
-using System.Threading;
+﻿using System.Threading;
 
 namespace ZooKeeperNetEx.utils
 {
@@ -17,13 +16,8 @@ namespace ZooKeeperNetEx.utils
             get => Volatile.Read(ref m_Value);
             set => Volatile.Write(ref m_Value, value);
         }
-         
-        public bool TrySetValue(T preconditionValue, T newValue)
-        {
-            return CompareExchange(preconditionValue, newValue) == preconditionValue;
-        }
 
-        public T CompareExchange(T preconditionValue, T newValue)
+        public T CompareExchange(T newValue, T preconditionValue)
         {
             return Interlocked.CompareExchange(ref m_Value, newValue, preconditionValue);
         }

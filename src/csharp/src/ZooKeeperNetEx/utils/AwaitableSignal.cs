@@ -12,43 +12,53 @@ namespace ZooKeeperNetEx.utils
     { 
         private static readonly Action s_sentinel = () => { };
 
-        private const int PENDING = 0;
-        private const int COMPLETED = 1;
-        private const int RESETING = 2;
+		private readonly ThreadLocal<bool> _stackDiveOccured = new ThreadLocal<bool>();
 
-        private Action _continuation;
-        private int _state;
+        private readonly VolatileReference<Action> _continuation = new VolatileReference<Action>(null);
 
         public AwaitableSignal GetAwaiter() { return this; }
 
-        public bool IsCompleted => Volatile.Read(ref _state) == COMPLETED;
+        public bool IsCompleted => _continuation.Value != null;
 
         public void OnCompleted(Action continuation) 
         { 
-            if (Interlocked.CompareExchange(ref _continuation, continuation, null) != null)
+    		if (_continuation.CompareExchange(continuation, null) != null)
             {
-                Task.Run(continuation);
+                RunContinuation(continuation);
             }
-        }
-
-        public bool TrySetCompleted()
-        {
-            return Interlocked.CompareExchange(ref _state, COMPLETED, PENDING) == PENDING;
         }
 
         public void TrySignal()
         {
-            if (TrySetCompleted() && Interlocked.CompareExchange(ref _continuation, s_sentinel, null) != null)
+            var continuation = _continuation.CompareExchange(s_sentinel, null);
+            if (continuation != null && continuation != s_sentinel && 
+                _continuation.CompareExchange(s_sentinel, continuation) == continuation)
             {
-                _continuation();
+                RunContinuation(continuation);
             }
         }
-
+        
         public void GetResult()
         {
-            Volatile.Write(ref _state, RESETING);
-            Volatile.Write(ref _continuation, null);
-            Volatile.Write(ref _state, PENDING);
+        }
+
+        public void Reset()
+        {
+            _continuation.Value = null;
+        }
+
+        private void RunContinuation(Action action)
+        {
+            if (_stackDiveOccured.Value)
+            {
+                _stackDiveOccured.Value = false;
+                Task.Run(action);
+            }
+            else
+            {
+                _stackDiveOccured.Value = true;
+                action();
+            }
         }
     }
 }

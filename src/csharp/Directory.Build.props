@@ -27,7 +27,7 @@ Please feel free to open an issue or ask a question there.
     </PackageReleaseNotes>
     <PackageIconUrl>https://raw.githubusercontent.com/shayhatsor/zookeeper/trunk/zookeeper.bmp</PackageIconUrl>
     <PackageProjectUrl>https://github.com/shayhatsor/zookeeper</PackageProjectUrl>
-    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <PackageLicense>http://www.apache.org/licenses/LICENSE-2.0</PackageLicense>
   </PropertyGroup>
 
 </Project>
