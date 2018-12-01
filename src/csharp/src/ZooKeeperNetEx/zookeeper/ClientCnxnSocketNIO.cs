@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 using org.apache.utils;
 using ZooKeeperNetEx.utils;
@@ -18,19 +17,16 @@ namespace org.apache.zookeeper
 
 		private Socket socket;
         
-        private readonly AwaitableSignal somethingIsPending = new AwaitableSignal();
+        internal readonly AwaitableSignal somethingIsPending = new AwaitableSignal();
 
 	    private readonly VolatileBool readEnabled = new VolatileBool(false);
 
         private readonly VolatileBool writeEnabled = new VolatileBool(false);
 
 	    private readonly VolatileReference<SocketContext> _socketAsyncEventArgsWrapper = new VolatileReference<SocketContext>(null);
-
-	    private readonly Timer _timer;
         
 	    internal ClientCnxnSocketNIO(ClientCnxn cnxn) : base(cnxn)
 	    {
-	        _timer = new Timer(delegate { somethingIsPending.TrySignal(); }, null, Timeout.Infinite, Timeout.Infinite);
 	    }
 
 	    internal override bool isConnected() {
@@ -296,15 +292,8 @@ namespace org.apache.zookeeper
             somethingIsPending.TrySignal();
 		}
 
-        internal override async Task doTransport(int waitTimeOut) 
+        internal override void doTransport() 
         {
-            if (waitTimeOut > 0 && !somethingIsPending.IsCompleted)
-            {
-                _timer.Change(waitTimeOut, Timeout.Infinite);
-                await somethingIsPending;
-                _timer.Change(Timeout.Infinite, Timeout.Infinite);
-            }
-
             somethingIsPending.Reset();
 
             // Everything below and until we get back to the select is
@@ -370,11 +359,6 @@ namespace org.apache.zookeeper
 	            return readEnabled.Value;
 	        }
 	    }
-
-        internal override void close() {
-            base.close();
-            _timer.Dispose();
-        }
     }
 
 }

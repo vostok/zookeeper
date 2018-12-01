@@ -140,7 +140,7 @@ namespace org.apache.zookeeper
 
         internal abstract void enableReadWriteOnly();
 
-        internal abstract Task doTransport(int to);
+        internal abstract void doTransport();
 
         internal virtual void close() {
             lenBuffer.Stream.Dispose();

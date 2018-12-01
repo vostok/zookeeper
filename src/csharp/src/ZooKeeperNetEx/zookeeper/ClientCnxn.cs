@@ -90,6 +90,8 @@ namespace org.apache.zookeeper {
 		private Task sendTask;
 		
         private Task eventTask;
+
+        private readonly Timer timer;
 		
         /**
 	 * Set to true when close is called. Latches the connection such that we
@@ -275,6 +277,7 @@ namespace org.apache.zookeeper {
             readTimeout = sessionTimeout*2/3;
             readOnly = canBeReadOnly;
             clientCnxnSocket = new ClientCnxnSocketNIO(this);
+            timer = new Timer(delegate { clientCnxnSocket.wakeupCnxn(); }, null, Timeout.Infinite, Timeout.Infinite);
             state.Value = (int) ZooKeeper.States.CONNECTING;
         }
         public void start() {
@@ -409,7 +412,7 @@ namespace org.apache.zookeeper {
         public const int packetLen = 0xfffff;
 
             private long lastPingSentNs;
-            private readonly ClientCnxnSocket clientCnxnSocket;
+            private readonly ClientCnxnSocketNIO clientCnxnSocket;
             private readonly Random r = new Random();
             private bool isFirstConnect = true;
 
@@ -714,7 +717,13 @@ namespace org.apache.zookeeper {
                             }
                             to = Math.Min(to, pingRwTimeout - idlePingRwServer);
                         }
-                        await clientCnxnSocket.doTransport(to).ConfigureAwait(false);
+                        if (to > 0 && !clientCnxnSocket.somethingIsPending.IsCompleted)
+                        {
+                            timer.Change(to, Timeout.Infinite);
+                            await clientCnxnSocket.somethingIsPending;
+                            timer.Change(Timeout.Infinite, Timeout.Infinite);
+                        }
+                        clientCnxnSocket.doTransport();
                     } catch (Exception e) {
                         if (closing.Value) {
                             if (LOG.isDebugEnabled()) {
@@ -942,6 +951,7 @@ namespace org.apache.zookeeper {
                 }
                 await sendTask;
                 await eventTask;
+                timer.Dispose();
             }
         }
 
