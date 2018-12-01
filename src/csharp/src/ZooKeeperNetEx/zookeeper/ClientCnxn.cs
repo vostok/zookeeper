@@ -294,7 +294,7 @@ namespace org.apache.zookeeper {
             }
         }
 
-      private readonly SignalTask waitingEventsSignal = new SignalTask();
+      private readonly AwaitableSignal waitingEventsSignal = new AwaitableSignal();
       
       private readonly ConcurrentQueue<WatcherSetEventPair> waitingEvents=new ConcurrentQueue<WatcherSetEventPair>();
 
@@ -320,13 +320,13 @@ namespace org.apache.zookeeper {
 						@event);
                 // queue the pair (watch set & event) for later processing
                 waitingEvents.Enqueue(pair);
-                waitingEventsSignal.TrySet();
+                waitingEventsSignal.TrySignal();
             }
 
 
             private void queueEventOfDeath() {
                 waitingEvents.Enqueue(eventOfDeath);
-                waitingEventsSignal.TrySet();
+                waitingEventsSignal.TrySignal();
             }
 
         private async Task startEventTask() {
@@ -334,7 +334,7 @@ namespace org.apache.zookeeper {
 
             try {
             while (!(wasKilled && waitingEvents.IsEmpty)) {
-                await waitingEventsSignal.Task.ConfigureAwait(false);
+                await waitingEventsSignal;
                 waitingEventsSignal.Reset();
 
                 WatcherSetEventPair @event;
