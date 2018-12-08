@@ -2,7 +2,7 @@ Apache ZooKeeper .NET async Client
 -
 ![ZooKeeper logo](https://raw.githubusercontent.com/shayhatsor/zookeeper/trunk/zookeeper.bmp)
 [![NuGet](https://img.shields.io/github/release/shayhatsor/zookeeper.svg?style=flat&label=Latest%20Release)](https://github.com/shayhatsor/zookeeper/releases/latest)
-* Supports .NET 4.5 and above, including .NET Core.
+* Supports .NET 4.51 and above, including .NET Core.
 * Fully Task-based Asynchronous (async/await).
 * Follows the logic of the official Java client to the letter, in fact the code is almost identical. 
 * NuGets
