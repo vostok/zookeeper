@@ -147,39 +147,16 @@ namespace org.apache.zookeeper
 			}
 		}
 
-		internal override async Task cleanup()
+		internal override void cleanup()
 		{
             readEnabled.Value = false;
             writeEnabled.Value = false;
 			if (socket != null)
 			{
-                await Task.Delay(100).ConfigureAwait(false);
                 try
-				{
-                    socket.Shutdown(SocketShutdown.Receive);
-				}
-				catch (Exception e)
-				{
-					if (LOG.isDebugEnabled())
-					{
-						LOG.debug("Ignoring exception during shutdown input", e);
-					}
-				}
-				try
-				{
-                    socket.Shutdown(SocketShutdown.Send);
-				}
-				catch (Exception e)
-				{
-					if (LOG.isDebugEnabled())
-					{
-						LOG.debug("Ignoring exception during shutdown output", e);
-					}
-				}
-				try
-				{
-                    socket.Dispose();
-				}
+                {
+                    socket.Close(0);
+                }
 				catch (Exception e)
 				{
 					if (LOG.isDebugEnabled())

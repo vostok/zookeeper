@@ -751,7 +751,7 @@ namespace org.apache.zookeeper {
                                     RETRY_CONN_MSG), 
 								e);
                         }
-                        await cleanup().ConfigureAwait(false);
+                        cleanup();
                         if (getState().isAlive()) {
                             queueEvent(new WatchedEvent(
                                 Watcher.Event.EventType.None,
@@ -762,7 +762,7 @@ namespace org.apache.zookeeper {
                     }
                 }
 
-                await cleanup().ConfigureAwait(false);
+                cleanup();
                 clientCnxnSocket.close();
                 if (getState().isAlive()) {
                     queueEvent(new WatchedEvent(Watcher.Event.EventType.None,
@@ -833,8 +833,8 @@ namespace org.apache.zookeeper {
                 }
             }
 
-            private async Task cleanup() {
-                await clientCnxnSocket.cleanup().ConfigureAwait(false);
+            private void cleanup() { 
+                clientCnxnSocket.cleanup();
                 var connLostPackets = new List<Packet>();
                 lock (pendingQueue) {
                     foreach (Packet p in pendingQueue) {

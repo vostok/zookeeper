@@ -134,7 +134,7 @@ namespace org.apache.zookeeper
 
         internal abstract EndPoint getLocalSocketAddress();
 
-        internal abstract Task cleanup();
+        internal abstract void cleanup();
 
         internal abstract void wakeupCnxn();
 
