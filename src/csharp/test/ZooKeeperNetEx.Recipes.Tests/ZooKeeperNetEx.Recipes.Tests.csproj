@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <AssemblyName>ZooKeeperNetEx.Recipes.Tests</AssemblyName>
-    <TargetFrameworks>$(StandardTestTfms)</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>

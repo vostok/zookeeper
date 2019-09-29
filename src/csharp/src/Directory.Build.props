@@ -3,15 +3,10 @@
 
   <PropertyGroup>
     <IncludeSymbols>True</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <IncludeSource>true</IncludeSource>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <TargetFrameworks>netstandard1.3</TargetFrameworks>
+    <IncludeSource>True</IncludeSource>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Net.NameResolution" Version="$(SystemNetNameResolution)" />
-    <PackageReference Include="System.Diagnostics.TraceSource" Version="$(SystemDiagnosticsTraceSource)" />
-  </ItemGroup>
 
 </Project>
