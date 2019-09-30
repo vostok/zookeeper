@@ -2,11 +2,30 @@
   <Import Project="..\Directory.Build.props" />
 
   <PropertyGroup>
-    <IncludeSymbols>True</IncludeSymbols>
-    <IncludeSource>True</IncludeSource>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeSymbols>False</IncludeSymbols>
+    <EmbedAllSources>True</EmbedAllSources>
+    <DebugType>Embedded</DebugType>
+
+    <Product>Apache Zookeeper .NET Client</Product>
+    <Copyright>© Shay Hazor</Copyright>
+    <Authors>Shay Hazor</Authors>
+    <RepositoryUrl>https://github.com/shayhatsor/zookeeper</RepositoryUrl>
+    <PackageReleaseNotes>
+      This project is actively maintained at: https://github.com/shayhatsor/zookeeper
+      Please feel free to open an issue or ask a question there.
+    </PackageReleaseNotes>
+    <PackageIconUrl>https://raw.githubusercontent.com/shayhatsor/zookeeper/trunk/zookeeper.bmp</PackageIconUrl>
+    <PackageProjectUrl>https://github.com/shayhatsor/zookeeper</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PublishRepositoryUrl>True</PublishRepositoryUrl>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
-    <AllowedOutputExtensionsInPackageBuildOutputFolder>.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <PackageIcon>ZooKeeperNetEx.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../ZooKeeperNetEx.png" Pack="true" PackagePath=""/>
+  </ItemGroup>
 
 </Project>
