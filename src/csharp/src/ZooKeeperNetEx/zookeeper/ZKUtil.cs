@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using org.apache.utils;
 using org.apache.zookeeper.common;
@@ -77,5 +79,55 @@ namespace org.apache.zookeeper
 			return tree;
 		}
 
-	}
+        /// <summary>
+        /// Visits the subtree with root as given path and calls the passed callback with each znode
+        /// found during the search.It performs a depth-first, pre-order traversal of the tree.
+        /// <para>
+        /// <b>Important:</b> This is <i>not an atomic snapshot</i> of the tree ever, but the
+        /// state as it exists across multiple RPCs from zkClient to the ensemble.
+        /// For practical purposes, it is suggested to bring the clients to the ensemble
+        /// down (i.e.prevent writes to pathRoot) to 'simulate' a snapshot behavior.
+        /// </para>
+        /// </summary>
+         /// <param name="zk"></param>
+         /// <param name="path"></param>
+         /// <param name="watch"></param>
+         /// <param name="visit"></param>
+         /// <returns></returns>
+        public static async Task visitSubTreeDFS(ZooKeeper zk, string path, bool watch, Func<string, Task> visit)
+        {
+            PathUtils.validatePath(path);
+
+            await zk.getDataAsync(path, watch).ConfigureAwait(false);
+            await visit(path).ConfigureAwait(false);
+            await visitSubTreeDFSHelper(zk, path, watch, visit).ConfigureAwait(false);
+        }
+
+        private static async Task visitSubTreeDFSHelper(ZooKeeper zk, string path, bool watch, Func<string, Task> visit)
+        {
+            // we've already validated, therefore if the path is of length 1 it's the root
+            bool isRoot = path.Length == 1;
+            try
+            {
+                var childrenResult = await zk.getChildrenAsync(path, watch).ConfigureAwait(false);
+                List<string> childrenPaths = childrenResult.Children.Select(child => (isRoot ? path : path + "/") + child).ToList();
+                childrenPaths.Sort();
+
+                foreach (string childPath in childrenPaths)
+                {
+                    await visit(childPath).ConfigureAwait(false);
+                }
+
+                foreach (string childPath in childrenPaths)
+                {
+                    await visitSubTreeDFSHelper(zk, childPath, watch, visit).ConfigureAwait(false);
+                }
+            }
+            catch (KeeperException.NoNodeException)
+            {
+                // Handle race condition where a node is listed
+                // but gets deleted before it can be queried
+            }
+        }
+    }
 }
