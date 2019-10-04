@@ -11,20 +11,13 @@ namespace org.apache.zookeeper
     /// Watcher class.
     /// </summary>
     public abstract class Watcher {
-        internal static readonly Task CompletedTask = Task.FromResult(1);
-
         /// <summary>
-        /// Processes the specified event.
+        /// Defines the possible states an Event may represent
         /// </summary>
-        /// <param name="event">The event.</param>
-        /// <returns></returns>
-        public abstract Task process(WatchedEvent @event);
-        
-        /// <summary/>
         public static class Event
         {
             /// <summary>
-            /// The state of the client from the server point of view
+            /// Enumeration of states the ZooKeeper may be at the event
             /// </summary>
             public enum KeeperState
             {
@@ -77,15 +70,42 @@ namespace org.apache.zookeeper
                 /// </summary>
                 NodeDeleted = 2,
                 /// <summary>
-                /// a node data changed
+                /// node's data changed
                 /// </summary>
                 NodeDataChanged = 3,
                 /// <summary>
-                /// a node children changed
+                /// node's children changed
                 /// </summary>
-                NodeChildrenChanged = 4
+                NodeChildrenChanged = 4,
+                /// <summary>
+                /// node's data watch removed
+                /// </summary>
+                DataWatchRemoved = 5,
+                /// <summary>
+                /// a node's children watch removed
+                /// </summary>
+                ChildWatchRemoved = 6
+            }
+
+            /// <summary>
+            /// Enumeration of types of watchers
+            /// </summary>
+            public enum WatcherType
+            {
+                /// <summary/>
+                Children = 1,
+                /// <summary/>
+                Data = 2,
+                /// <summary/>
+                Any = 3
             }
         }
+
+        /// <summary>
+        /// Processes the specified event.
+        /// </summary>
+        /// <param name="event">The event.</param>
+        public abstract Task process(WatchedEvent @event);
     }
 
     internal class WatcherDelegate : Watcher {

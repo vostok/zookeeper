@@ -24,7 +24,7 @@ namespace org.apache.zookeeper.test
 		                Assert.assertTrue("interruption unexpected", false);
 		            }
 		        }
-		        return CompletedTask;
+		        return Task.CompletedTask;
             }
 
 

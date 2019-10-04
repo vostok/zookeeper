@@ -949,8 +949,8 @@ namespace org.apache.zookeeper {
                 finally {
                     disconnect();
                 }
-                await sendTask;
-                await eventTask;
+                await sendTask.ConfigureAwait(false);
+                await eventTask.ConfigureAwait(false);
                 timer.Dispose();
             }
         }

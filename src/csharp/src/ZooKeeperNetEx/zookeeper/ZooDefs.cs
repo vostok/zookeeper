@@ -13,7 +13,6 @@ namespace org.apache.zookeeper
         public const string CONFIG_NODE = "/zookeeper/config";
         internal enum OpCode
         {
-            //Notification = 0, Used by server
             create = 1,
             delete = 2,
             exists = 3,
@@ -21,7 +20,6 @@ namespace org.apache.zookeeper
             setData = 5,
             getACL = 6,
             setACL = 7,
-            //getChildren = 8, Not used by this client
             sync = 9,
             ping = 11,
             getChildren2 = 12,
@@ -36,7 +34,6 @@ namespace org.apache.zookeeper
             createTTL = 21,
             auth = 100,
             setWatches = 101,
-            //createSession = -10, Used by server
             closeSession = -11,
             error = -1,
         }

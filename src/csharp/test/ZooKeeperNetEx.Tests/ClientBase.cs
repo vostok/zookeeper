@@ -63,7 +63,7 @@ namespace org.apache.zookeeper
             private NullWatcher() { }
             public override Task process(WatchedEvent @event)
             {
-                return CompletedTask;
+                return Task.CompletedTask;
                 // nada
             }
         }

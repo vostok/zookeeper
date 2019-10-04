@@ -171,7 +171,7 @@ namespace org.apache.zookeeper.recipes.queue
 			{
 				LOG.debug("Watcher fired on path: " + @event.getPath() + " state: " + @event.getState() + " type " + @event.get_Type());
 			    latch.TrySetResult(true);
-			    return CompletedTask;
+			    return Task.CompletedTask;
 			}
 
 			public Task getTask()

@@ -106,7 +106,7 @@ namespace org.apache.zookeeper.test {
                 if (@event.get_Type() != Event.EventType.None) {
                     events.Add(@event);
                 }
-                return CompletedTask;
+                return Task.CompletedTask;
             }
         }
 
@@ -529,7 +529,7 @@ namespace org.apache.zookeeper.test {
                 if (@event.getState() == Event.KeeperState.Disconnected) {
                     latch.TrySetResult(true);
                 }
-                return CompletedTask;
+                return Task.CompletedTask;
             }
 
             public Task getTask()

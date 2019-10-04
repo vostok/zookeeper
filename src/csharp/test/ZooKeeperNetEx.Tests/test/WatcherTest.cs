@@ -15,7 +15,7 @@ namespace org.apache.zookeeper.test
             if (@event.get_Type() != Event.EventType.None) {
                 events.Add(@event);
             }
-            return CompletedTask;
+            return Task.CompletedTask;
         }
     }
 

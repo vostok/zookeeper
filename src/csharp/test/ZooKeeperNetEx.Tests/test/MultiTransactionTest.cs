@@ -637,7 +637,7 @@ namespace org.apache.zookeeper.test
             public override Task process(WatchedEvent @event)
             {
                 triggered.TrySetResult(true);
-                return CompletedTask;
+                return Task.CompletedTask;
             }
         }
 
@@ -651,7 +651,7 @@ namespace org.apache.zookeeper.test
                 {
                     triggered.TrySetResult(true);
                 }
-                return CompletedTask;
+                return Task.CompletedTask;
             }
         }
     }

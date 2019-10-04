@@ -22,7 +22,7 @@ namespace org.apache.zookeeper.test
                 LOG.debug("latch:" + path + " " + @event.getPath());
 				eventPath = @event.getPath();
                 taskCompletionSource.TrySetResult(true);
-			    return CompletedTask;
+			    return Task.CompletedTask;
 			}
 
 
