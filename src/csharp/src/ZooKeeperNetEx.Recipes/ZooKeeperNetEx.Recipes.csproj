@@ -2,9 +2,15 @@
 
   <PropertyGroup>
     <Description>.NET async Distributed Recipes For ZooKeeper: Queue, Lock and Leader Election.</Description>
-    <AssemblyTitle>Apache ZooKeeper .NET async Recipes</AssemblyTitle>
-    <AssemblyName>ZooKeeperNetEx.Recipes</AssemblyName>
+    <Summary>$(Description)</Summary>
+	
+	<AssemblyTitle>Apache ZooKeeper .NET async Recipes</AssemblyTitle>
+	<Product>$(AssemblyTitle)</Product>
+    <Title>$(AssemblyTitle)</Title>
+	
     <PackageId>ZooKeeperNetEx.Recipes</PackageId>
+    <AssemblyName>$(PackageId)</AssemblyName>
+  
     <PackageTags>ZooKeeper;Recipes;.NET;Lock;Leader Election;Queue</PackageTags>
   </PropertyGroup>
 

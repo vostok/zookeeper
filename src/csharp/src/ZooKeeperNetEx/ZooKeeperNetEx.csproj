@@ -2,10 +2,16 @@
 
   <PropertyGroup>
     <Description>A .NET async Client fully compliant with ZooKeeper, supporting all features. Fully Task-based Asynchronous (async/await). A great measure has been taken to follow the logic of the official Java client, including all relevant unit tests. In fact, the code is almost identical. Thus allowing easy evolution alongside the Java version.</Description>
-    <AssemblyTitle>Apache ZooKeeper .NET async Client</AssemblyTitle>
-    <AssemblyName>ZooKeeperNetEx</AssemblyName>
+    <Summary>$(Description)</Summary>
+	
+	<AssemblyTitle>Apache ZooKeeper .NET async Client</AssemblyTitle>
+	<Product>$(AssemblyTitle)</Product>
+    <Title>$(AssemblyTitle)</Title>
+	
     <PackageId>ZooKeeperNetEx</PackageId>
-    <PackageTags>ZooKeeper;.NET;Client;Async</PackageTags>
+    <AssemblyName>$(PackageId)</AssemblyName>
+    
+	<PackageTags>ZooKeeper;.NET;Client;Async</PackageTags>
   </PropertyGroup>
   
   <ItemGroup>

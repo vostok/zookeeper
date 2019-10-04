@@ -2,30 +2,41 @@
   <Import Project="..\Directory.Build.props" />
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <IncludeSymbols>False</IncludeSymbols>
+    <TargetFrameworks>netstandard2.0;net461</TargetFrameworks>
     <EmbedAllSources>True</EmbedAllSources>
-    <DebugType>Embedded</DebugType>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
 
-    <Product>Apache Zookeeper .NET Client</Product>
+  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+    <DebugType>Embedded</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net461'">
+    <DebugType>Portable</DebugType>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <Copyright>© Shay Hazor</Copyright>
-    <Authors>Shay Hazor</Authors>
+    <Authors>shayhatsor2</Authors>
+    <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/shayhatsor/zookeeper</RepositoryUrl>
+    <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageReleaseNotes>
       This project is actively maintained at: https://github.com/shayhatsor/zookeeper
       Please feel free to open an issue or ask a question there.
     </PackageReleaseNotes>
-    <PackageIconUrl>https://raw.githubusercontent.com/shayhatsor/zookeeper/trunk/zookeeper.bmp</PackageIconUrl>
-    <PackageProjectUrl>https://github.com/shayhatsor/zookeeper</PackageProjectUrl>
+    <PackageIconUrl>https://svn.apache.org/repos/asf/comdev/project-logos/originals/zookeeper.svg</PackageIconUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PublishRepositoryUrl>True</PublishRepositoryUrl>
-    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageRequireLicenseAcceptance>False</PackageRequireLicenseAcceptance>
     <PackageIcon>ZooKeeperNetEx.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="../../ZooKeeperNetEx.png" Pack="true" PackagePath=""/>
+    <None Include="../../ZooKeeperNetEx.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
