@@ -80,9 +80,9 @@ namespace org.apache.zookeeper.common
 			            break;
 			        }
 			    }
-			    else if (c > '\u0000' && c < '\u001f' || c > '\u007f' && c < '\u009F' || c > '\ud800' && c < '\uf8ff' || c > '\ufff0' && c < '\uffff')
+			    else if (c <= '\u001f' || c >= '\u007f' && c <= '\u009F' || c >= '\ud800' && c <= '\uf8ff' || c >= '\ufff0')
 			    {
-			        reason = "invalid charater @" + i;
+			        reason = "invalid character @" + i;
 			        break;
 			    }
 			}
