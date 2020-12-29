@@ -397,6 +397,9 @@ namespace org.apache.zookeeper {
 
         internal readonly SignalTask connectedSignal = new SignalTask();
 
+        /// <summary>
+        /// Returns current server endpoint or null if not connected.
+        /// </summary>
         public string getCurrentEndpoint()
         {
             var address = cnxn.currentServerAddress;
