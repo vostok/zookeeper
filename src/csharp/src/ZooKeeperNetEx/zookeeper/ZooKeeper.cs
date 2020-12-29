@@ -396,7 +396,16 @@ namespace org.apache.zookeeper {
         private readonly int userDefinedSessionTimeout;
 
         internal readonly SignalTask connectedSignal = new SignalTask();
-        
+
+        /// <summary>
+        /// Returns current server endpoint or null if not connected.
+        /// </summary>
+        public string getCurrentEndpoint()
+        {
+            var address = cnxn.currentServerAddress;
+            return address == null ? null : address.ToEndPointString();
+        }
+
         /// <summary>
         /// The session id for this ZooKeeper client instance. The value returned is not valid until the client connects to a 
         /// server and may change after a re-connect. This method is NOT thread safe.

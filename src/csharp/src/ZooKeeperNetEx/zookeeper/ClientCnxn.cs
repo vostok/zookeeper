@@ -620,6 +620,7 @@ namespace org.apache.zookeeper {
             }
 
             private ResolvedEndPoint rwServerAddress;
+            public ResolvedEndPoint currentServerAddress;
             private const int minPingRwTimeout = 100;
             private const int maxPingRwTimeout = 60000;
             private int pingRwTimeout = minPingRwTimeout;
@@ -627,6 +628,7 @@ namespace org.apache.zookeeper {
             private void startConnect(ResolvedEndPoint addr) {
                 state.Value = (int) ZooKeeper.States.CONNECTING;
 
+                currentServerAddress = addr;
                 logStartConnect(addr);
 				
                 clientCnxnSocket.connect(addr);

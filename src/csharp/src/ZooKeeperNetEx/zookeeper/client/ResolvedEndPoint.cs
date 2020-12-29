@@ -21,6 +21,11 @@ namespace org.apache.zookeeper.client
             return $"{{{(host == null ? null : $"{host}=>")}{base.ToString()}}}";
         }
 
+        public string ToEndPointString()
+        {
+            return host == null ? $"{Address}:{Port}" : $"{host}:{Port}";
+        }
+
         public bool Equals(ResolvedEndPoint other)
         {
             return base.Equals(other);
