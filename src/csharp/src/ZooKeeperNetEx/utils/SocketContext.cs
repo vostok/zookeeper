@@ -74,6 +74,11 @@ namespace ZooKeeperNetEx.utils
 
             var socketAsyncEventArgs = _socketAsyncEventArgs;
 
+            if (socketAsyncEventArgs.LastOperation == SocketAsyncOperation.Receive && _socket.Available == 0 && _socket.Poll(1000, SelectMode.SelectRead))
+            {
+                socketAsyncEventArgs.SocketError = SocketError.ConnectionReset;
+            }
+
             if (socketAsyncEventArgs.SocketError != SocketError.Success)
             {
                 throw new SocketException((int) socketAsyncEventArgs.SocketError);
@@ -81,7 +86,7 @@ namespace ZooKeeperNetEx.utils
             
             return socketAsyncEventArgs.LastOperation;
         }
-      
+
         private void ThrowIfDisposed()
         {
             if (_disposed.Value == 1)
