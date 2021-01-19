@@ -73,11 +73,6 @@ namespace ZooKeeperNetEx.utils
             if (_state.Value == PENDING) return SocketAsyncOperation.None;
 
             var socketAsyncEventArgs = _socketAsyncEventArgs;
-            
-            if (socketAsyncEventArgs.LastOperation == SocketAsyncOperation.Receive && _socket.Available == 0 && _socket.Poll(1000, SelectMode.SelectRead))
-            {
-                socketAsyncEventArgs.SocketError = SocketError.ConnectionReset;
-            }
 
             if (socketAsyncEventArgs.SocketError != SocketError.Success)
             {
